@@ -23,10 +23,19 @@ class ShopAddViewController: UIViewController {
     var selectLatitude: Double?
     var selectLongitude: Double?
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showMap" {
+            if let mapVC = segue.destination as? MapViewController {
+                mapVC.delegate = self
+            }
+        }
     }
 
+    @IBAction func mapButtonTapped(_ sender: UIButton) {
+        performSegue(withIdentifier: "showMap", sender: nil)
+    }
+    
     @IBAction func selectLocationButtonTapped(_ sender: UIButton) {
         // 地図を開く処理（MapViewControllerへ遷移）
         let storyboard = UIStoryboard(name: "Main", bundle: nil)

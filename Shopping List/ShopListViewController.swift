@@ -24,10 +24,10 @@ class ShopListViewController: UIViewController, UITableViewDelegate, UITableView
             tableView.dataSource = self
         }
     }
-    var myItems: [String] = ["Shop1", "Shop２", "Shop３"]
+    var shops: [String] = ["Shop1", "Shop２", "Shop３"]
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return myItems.count
+        return shops.count
     }
     
     
@@ -36,11 +36,11 @@ class ShopListViewController: UIViewController, UITableViewDelegate, UITableView
             return UITableViewCell()
         }
         // お店の名前表示など
-        let shops: [String] = ["スーパー", "ドラッグストア", "コンビニ"]
+        
         cell.textLabel?.text = shops[indexPath.row]
         // tag1を取得
         if let titleText = cell.viewWithTag(1) as? UITextField {
-            titleText.text = "\(myItems[indexPath.row])"
+            titleText.text = "\(shops[indexPath.row])"
         }
         
         // ＋ボタンにタップ処理を追加！
@@ -53,7 +53,7 @@ class ShopListViewController: UIViewController, UITableViewDelegate, UITableView
     
     @IBAction func tapAdd(sender: AnyObject) {
         // myItemsに追加.
-        myItems.append("ShopNEW")
+        shops.append("ShopNEW")
         // TableViewを再読み込み.
         tableView.reloadData()
     }
@@ -72,7 +72,7 @@ class ShopListViewController: UIViewController, UITableViewDelegate, UITableView
         // 削除のとき.
         if editingStyle == UITableViewCell.EditingStyle.delete {
             // 指定されたセルのオブジェクトをmyItemsから削除する.
-            myItems.remove(at: indexPath.row)
+            shops.remove(at: indexPath.row)
             // TableViewを再読み込み.
             tableView.reloadData()
         }

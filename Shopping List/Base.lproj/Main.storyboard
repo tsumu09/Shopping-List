@@ -14,7 +14,7 @@
             <objects>
                 <viewController id="nJf-zq-3Ut" customClass="MapViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8Kc-se-hwl">
-                        <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
+                        <rect key="frame" x="0.0" y="0.0" width="402" height="864"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pqB-Se-97e">
@@ -32,7 +32,33 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dS0-rg-dZ7" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="44.776119402985074" y="-321.28146453089244"/>
+            <point key="canvasLocation" x="88" y="-643"/>
+        </scene>
+        <!--Shop Add View Controller-->
+        <scene sceneID="wTq-1R-SGS">
+            <objects>
+                <viewController id="Gtw-Z1-6Am" customClass="ShopAddViewController" customModule="Shopping_List" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ark-PT-rji">
+                        <rect key="frame" x="0.0" y="0.0" width="402" height="864"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mW7-dX-ZiZ">
+                                <rect key="frame" x="180" y="511" width="44" height="35"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="mappin" catalog="system"/>
+                                <connections>
+                                    <segue destination="nJf-zq-3Ut" kind="presentation" identifier="showMap" id="75K-CZ-3zK"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="822-BI-bBa"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="mAP-pR-B8W" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-757" y="-643"/>
         </scene>
         <!--Shop List View Controller-->
         <scene sceneID="tne-QT-ifu">
@@ -59,6 +85,7 @@
                                                     <buttonConfiguration key="configuration" style="plain" title="+"/>
                                                     <connections>
                                                         <action selector="tapAddWithSender:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Ehc-kR-Gzl"/>
+                                                        <segue destination="Gtw-Z1-6Am" kind="presentation" id="lb0-Mo-Vxr"/>
                                                     </connections>
                                                 </button>
                                             </barButtonItem>
@@ -84,14 +111,8 @@
                                             <rect key="frame" x="0.0" y="0.0" width="402" height="44.666667938232422"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="LEf-zo-Fji">
-                                                    <rect key="frame" x="35" y="5" width="305" height="34"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                                    <textInputTraits key="textInputTraits"/>
-                                                </textField>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="dJP-6S-8Iw">
-                                                    <rect key="frame" x="305" y="5" width="35" height="35"/>
+                                                    <rect key="frame" x="332" y="5" width="35" height="35"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <state key="normal" title="Button"/>
                                                     <buttonConfiguration key="configuration" style="plain" title="+"/>
@@ -99,6 +120,12 @@
                                                         <segue destination="wRK-lu-rnE" kind="presentation" identifier="toItemAddViewController" id="heL-bn-Sgj"/>
                                                     </connections>
                                                 </button>
+                                                <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="LEf-zo-Fji">
+                                                    <rect key="frame" x="20" y="6" width="305" height="34"/>
+                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                                    <textInputTraits key="textInputTraits"/>
+                                                </textField>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <connections>
@@ -140,7 +167,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="45" y="389"/>
+            <point key="canvasLocation" x="-2100" y="21"/>
         </scene>
         <!--Item Add View Controller-->
         <scene sceneID="Bd8-7t-7Hi">
@@ -254,7 +281,7 @@
                     </connections>
                 </viewController>
             </objects>
-            <point key="canvasLocation" x="1218" y="-192"/>
+            <point key="canvasLocation" x="-758" y="21"/>
         </scene>
         <!--Item List View Controller-->
         <scene sceneID="xBW-O6-96n">
@@ -269,10 +296,11 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="m1Q-Ed-GfC" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1209" y="478"/>
+            <point key="canvasLocation" x="-758" y="726"/>
         </scene>
     </scenes>
     <resources>
+        <image name="mappin" catalog="system" width="106" height="128"/>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
