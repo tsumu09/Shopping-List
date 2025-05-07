@@ -14,68 +14,56 @@ protocol MapViewControllerDelegate: AnyObject {
     func didSelectLocation(latitude: Double, longitude: Double)
 }
 
-class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
+class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDelegate {
 
+    @IBOutlet weak var mapView: MKMapView!
     weak var delegate: MapViewControllerDelegate?
     
-    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        if let coordinate = view.annotation?.coordinate {
+    let locationManager = CLLocationManager()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        mapView.delegate = self
+        mapView.showsUserLocation = true
+
+        
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    
+        // 長押しジェスチャー追加（ピンを立てる用）
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        mapView.addGestureRecognizer(longPress)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let userLocation = locations.first {
+            let region = MKCoordinateRegion(center: userLocation.coordinate, latitudinalMeters: 500, longitudinalMeters: 500)
+            mapView.setRegion(region, animated: true)
+        }
+    }
+    
+    @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+            let touchPoint = gesture.location(in: mapView)
+            let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
+
+            // 既存のピンを消して新しく追加
+            mapView.removeAnnotations(mapView.annotations)
+
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = coordinate
+            annotation.title = "選択された場所"
+            mapView.addAnnotation(annotation)
+            
             delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             navigationController?.popViewController(animated: true)
         }
     }
     
-    @IBOutlet weak var mapView: MKMapView!
-
-    let locationManager = CLLocationManager()
-
-    // ピンの位置（後で他の画面に渡したいならここに保存する）
-    var selectedCoordinate: CLLocationCoordinate2D?
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        mapView.delegate = self
-        locationManager.delegate = self
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-
-        mapView.showsUserLocation = true
-
-        // 長押しジェスチャー追加（ピンを立てる用）
-        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        mapView.addGestureRecognizer(longPressGesture)
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let currentLocation = locations.last else { return }
-
-        // 最初だけ現在地に移動（何回もやらないようにstop）
-        let region = MKCoordinateRegion(center: currentLocation.coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000)
-        mapView.setRegion(region, animated: true)
-        locationManager.stopUpdatingLocation()
-    }
-
-    @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
-        if gestureRecognizer.state != .began { return }
-
-        let touchPoint = gestureRecognizer.location(in: mapView)
-        let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
-
-        // 既存のピンを消して新しく追加
-        mapView.removeAnnotations(mapView.annotations)
-
-        let annotation = MKPointAnnotation()
-        annotation.coordinate = coordinate
-        annotation.title = "お店の場所"
-        mapView.addAnnotation(annotation)
-
-        // 選択された座標を保存
-        selectedCoordinate = coordinate
-
-        print("選ばれた緯度: \(coordinate.latitude), 経度: \(coordinate.longitude)")
-        
-        delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        navigationController?.popViewController(animated: true)
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("現在地の取得に失敗しました: \(error.localizedDescription)")
     }
 }

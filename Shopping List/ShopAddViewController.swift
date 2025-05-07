@@ -9,31 +9,20 @@ import UIKit
 import CoreLocation
 
 protocol ShopAddViewControllerDelegate: AnyObject {
-    func didAddShop(name: String, coordinate: CLLocationCoordinate2D)
+    func didAddShop(name: String, latitude: Double, longitude: Double)
 }
 
-class ShopAddViewController: UIViewController {
-
+class ShopAddViewController: UIViewController, MapViewControllerDelegate {
+    
     @IBOutlet weak var nameTextField: UITextField!
-    @IBOutlet weak var selectLocationButton: UIButton!
-
+    
     weak var delegate: ShopAddViewControllerDelegate?
-
-    var selectedCoordinate: CLLocationCoordinate2D?
+    
     var selectLatitude: Double?
     var selectLongitude: Double?
     
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showMap" {
-            if let mapVC = segue.destination as? MapViewController {
-                mapVC.delegate = self
-            }
-        }
-    }
-
-    @IBAction func mapButtonTapped(_ sender: UIButton) {
-        performSegue(withIdentifier: "showMap", sender: nil)
+    override func viewDidLoad() {
+        super.viewDidLoad()
     }
     
     @IBAction func selectLocationButtonTapped(_ sender: UIButton) {
@@ -44,21 +33,21 @@ class ShopAddViewController: UIViewController {
             navigationController?.pushViewController(mapVC, animated: true)
         }
     }
-
+    
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         guard let name = nameTextField.text, !name.isEmpty,
-              let coordinate = selectedCoordinate else {
+        let lat = selectLatitude,
+        let lon = selectLongitude else {
             return
         }
-
-        delegate?.didAddShop(name: name, coordinate: coordinate)
+        
+        delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
         navigationController?.popViewController(animated: true)
     }
-}
-extension ShopAddViewController: MapViewControllerDelegate {
+    
     func didSelectLocation(latitude: Double, longitude: Double) {
         selectLatitude = latitude
         selectLongitude = longitude
-        print("選択したいち - 緯度: \(latitude), 経度: \(longitude)")
     }
+    
 }
