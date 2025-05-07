@@ -12,7 +12,6 @@ import CoreLocation
 
 protocol MapViewControllerDelegate: AnyObject {
     func didSelectLocation(latitude: Double, longitude: Double)
-    func didSelectLocation(coordinate: CLLocationCoordinate2D)
 }
 
 class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
@@ -21,7 +20,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         if let coordinate = view.annotation?.coordinate {
-            delegate?.didSelectLocation(coordinate: coordinate)
+            delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             navigationController?.popViewController(animated: true)
         }
     }

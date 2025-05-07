@@ -20,7 +20,9 @@ class ShopAddViewController: UIViewController {
     weak var delegate: ShopAddViewControllerDelegate?
 
     var selectedCoordinate: CLLocationCoordinate2D?
-
+    var selectLatitude: Double?
+    var selectLongitude: Double?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
     }
@@ -45,9 +47,9 @@ class ShopAddViewController: UIViewController {
     }
 }
 extension ShopAddViewController: MapViewControllerDelegate {
-    func didSelectLocation(coordinate: CLLocationCoordinate2D) {
-        selectedCoordinate = coordinate
-        // ボタンのタイトルを更新して「選択済み」って表示もいいかも
-        selectLocationButton.setTitle("選択済み", for: .normal)
+    func didSelectLocation(latitude: Double, longitude: Double) {
+        selectLatitude = latitude
+        selectLongitude = longitude
+        print("選択したいち - 緯度: \(latitude), 経度: \(longitude)")
     }
 }
