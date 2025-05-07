@@ -1,0 +1,53 @@
+//
+//  ShopAddViewController.swift
+//  Shopping List
+//
+//  Created by 高橋紬季 on 2025/05/07.
+//
+
+import UIKit
+import CoreLocation
+
+protocol ShopAddViewControllerDelegate: AnyObject {
+    func didAddShop(name: String, coordinate: CLLocationCoordinate2D)
+}
+
+class ShopAddViewController: UIViewController {
+
+    @IBOutlet weak var nameTextField: UITextField!
+    @IBOutlet weak var selectLocationButton: UIButton!
+
+    weak var delegate: ShopAddViewControllerDelegate?
+
+    var selectedCoordinate: CLLocationCoordinate2D?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+    }
+
+    @IBAction func selectLocationButtonTapped(_ sender: UIButton) {
+        // 地図を開く処理（MapViewControllerへ遷移）
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        if let mapVC = storyboard.instantiateViewController(withIdentifier: "MapViewController") as? MapViewController {
+            mapVC.delegate = self
+            navigationController?.pushViewController(mapVC, animated: true)
+        }
+    }
+
+    @IBAction func saveButtonTapped(_ sender: UIButton) {
+        guard let name = nameTextField.text, !name.isEmpty,
+              let coordinate = selectedCoordinate else {
+            return
+        }
+
+        delegate?.didAddShop(name: name, coordinate: coordinate)
+        navigationController?.popViewController(animated: true)
+    }
+}
+extension ShopAddViewController: MapViewControllerDelegate {
+    func didSelectLocation(coordinate: CLLocationCoordinate2D) {
+        selectedCoordinate = coordinate
+        // ボタンのタイトルを更新して「選択済み」って表示もいいかも
+        selectLocationButton.setTitle("選択済み", for: .normal)
+    }
+}
