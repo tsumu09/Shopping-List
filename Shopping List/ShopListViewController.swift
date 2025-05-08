@@ -24,8 +24,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath)
-        cell.textLabel?.text = shops[indexPath.row]
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else{
+            return UITableViewCell()
+        }
+        cell.shopNameLabel.text = shops[indexPath.row]
+        
+        cell.addItemButton.tag = indexPath.row
+        cell.addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
+        
         return cell
     }
     
@@ -39,6 +45,15 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     @IBAction func editPositionButtonTapped(_ sender: UIButton) {
         tableView.isEditing.toggle()
+    }
+    
+    @objc func addItemButtonTapped(_ sender: UIButton) {
+        let index = sender.tag
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        if let itemAddVC = storyboard.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
+            itemAddVC.selectedShopIndex = index
+            navigationController?.pushViewController(itemAddVC, animated: true)
+        }
     }
 }
     

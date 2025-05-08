@@ -14,7 +14,7 @@ protocol ShopAddViewControllerDelegate: AnyObject {
 
 class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     
-    @IBOutlet weak var nameTextField: UITextField!
+    @IBOutlet weak var shopNameTextField: UITextField!
     
     weak var delegate: ShopAddViewControllerDelegate?
     
@@ -34,8 +34,15 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
         }
     }
     
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "toMap",
+           let mapVC = segue.destination as? MapViewController {
+            mapVC.delegate = self
+        }
+    }
+    
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-        guard let name = nameTextField.text, !name.isEmpty,
+        guard let name = shopNameTextField.text, !name.isEmpty,
         let lat = selectLatitude,
         let lon = selectLongitude else {
             return

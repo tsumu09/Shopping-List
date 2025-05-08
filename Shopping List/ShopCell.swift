@@ -8,6 +8,7 @@
 import UIKit
 
 class ShopCell: UITableViewCell {
+    @IBOutlet weak var shopNameLabel: UILabel!
     @IBOutlet weak var addItemButton: UIButton!
     
     override func awakeFromNib() {
