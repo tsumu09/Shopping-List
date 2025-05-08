@@ -32,9 +32,9 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     @IBOutlet weak var detailTextView: UITextView!
     
-    @IBOutlet weak var prioritySegment: UISegmentedControl!
+    @IBOutlet weak var importanceSegment: UISegmentedControl!
     
-    @IBOutlet weak var datePicker: UIDatePicker!
+    @IBOutlet weak var deadlineDatePicker: UIDatePicker!
     
     
     
@@ -48,10 +48,11 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
             return
         }
         
-        let date = datePicker.date
-        let priority = prioritySegment.selectedSegmentIndex
         
-        let newItem = Item(name: name, price: price, date: date, detail: detail, priority: priority)
+        let deadline = deadlineDatePicker.date
+        let importance = importanceSegment.selectedSegmentIndex
+        
+        let newItem = Item(name: name, price: price, deadline: deadline, detail: detail, importance: importance)
         
         delegate?.didAddItem(newItem, toShopAt: selectedShopIndex)
         

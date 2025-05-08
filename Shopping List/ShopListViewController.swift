@@ -11,7 +11,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     @IBOutlet weak var tableView: UITableView!
     
-    var shops: [String] = []
+
+    var shops: [Shop] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,20 +20,27 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         tableView.dataSource = self
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return shops.count
-    }
+    
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else{
-            return UITableViewCell()
+        if indexPath.row == 0 {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else{
+                return UITableViewCell()
+            }
+        
+            cell.shopNameLabel.text = shops[indexPath.section].name
+            cell.addItemButton.tag = indexPath.section
+            cell.addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
+            
+            return cell
+        } else {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else{
+                return UITableViewCell()
+            }
+            let item = shops[indexPath.section].items[indexPath.row - 1]
+            cell.nameLabel.text = item.name
+            return cell
         }
-        cell.shopNameLabel.text = shops[indexPath.row]
-        
-        cell.addItemButton.tag = indexPath.row
-        cell.addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
-        
-        return cell
     }
     
     @IBAction func addShopButtonTapped(_ sender: UIButton) {
@@ -55,12 +63,70 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             navigationController?.pushViewController(itemAddVC, animated: true)
         }
     }
+    
+    func didAddItem(_ item: Item, toShopAt index: Int) {
+        shops[index].items.append(item)
+        tableView.reloadData()
+    }
+    
+    
+    // セクションの数 = お店の数
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return shops.count
+    }
+
+    // 各セクションに表示する商品の数（isExpandedで制御）
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return 1 + shops[section].items.count
+    }
+
+    // 各商品のセル
+    
+
+    // セクションヘッダーの表示（お店の名前＋ボタン）
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let headerView = UIView()
+        headerView.backgroundColor = .systemGroupedBackground
+        
+        let nameLabel = UILabel(frame: CGRect(x: 16, y: 0, width: 200, height: 40))
+        nameLabel.text = shops[section].name
+        headerView.addSubview(nameLabel)
+        
+        let toggleButton = UIButton(frame: CGRect(x: tableView.frame.width - 80, y: 5, width: 70, height: 30))
+        toggleButton.setTitle(shops[section].isExpanded ? "閉じる" : "表示", for: .normal)
+        toggleButton.setTitleColor(.systemBlue, for: .normal)
+        toggleButton.tag = section
+        toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
+        headerView.addSubview(toggleButton)
+        
+        return headerView
+    }
+
+    @objc func toggleItems(_ sender: UIButton) {
+        let section = sender.tag
+        shops[section].isExpanded.toggle()
+        tableView.reloadSections(IndexSet(integer: section), with: .automatic)
+    }
+    
+    @objc func detailButtonTapped(_ sender: UIButton) {
+        let section = sender.tag
+        let selectedShop = shops[section]
+        
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
+            itemListVC.shop = selectedShop
+            navigationController?.pushViewController(itemListVC, animated: true)
+        }
+    }
+    
+    
 }
     
    
 extension ShopListViewController: ShopAddViewControllerDelegate {
     func didAddShop(name: String, latitude: Double, longitude: Double) {
-        shops.append(name)
+        let newShop = Shop(name: name, latitude: latitude, longitude: longitude, items: [])
+        shops.append(newShop)
         tableView.reloadData()
     }
 }
