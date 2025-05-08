@@ -18,6 +18,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
+        loadCheckStates()
+        tableView.reloadData()
     }
     
     
@@ -39,6 +41,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             }
             let item = shops[indexPath.section].items[indexPath.row - 1]
             cell.nameLabel.text = item.name
+            cell.isChecked = item.isChecked
+            
+            cell.toggleCheckAction = { [weak self] in
+                item.isChecked.toggle()
+                cell.isChecked = item.isChecked
+                self?.saveCheckStates()
+            }
+            
             return cell
         }
     }
@@ -119,6 +129,26 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         }
     }
     
+    func saveCheckStates() {
+        var checkStates: [[Bool]] = []
+        for shop in shops {
+            let itemStates = shop.items.map { $0.isChecked }
+            checkStates.append(itemStates)
+        }
+        UserDefaults.standard.set(checkStates, forKey: "CheckStates")
+    }
+    
+    func loadCheckStates() {
+        if let saveStates = UserDefaults.standard.array(forKey: "CheckStates") as? [[Bool]] {
+            for (shopIndex, itemStates) in saveStates.enumerated() {
+                if shopIndex < shops.count {
+                    for (itemIndex, state) in itemStates.enumerated() {
+                        shops[shopIndex].items[itemIndex].isChecked = state
+                    }
+                }
+            }
+        }
+    }
     
 }
     

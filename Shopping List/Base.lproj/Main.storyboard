@@ -149,11 +149,11 @@
                                             <outlet property="shopNameLabel" destination="xmw-iW-cg4" id="Ogv-1t-ZsG"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ShopItemCell" id="3Gh-E2-Zew" customClass="ShopItemCell" customModule="Shopping_List" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="150.66666793823242" width="402" height="44.666667938232422"/>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ShopItemCell" rowHeight="44" id="3Gh-E2-Zew" customClass="ShopItemCell" customModule="Shopping_List" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="150.66666793823242" width="402" height="44"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="3Gh-E2-Zew" id="syU-ti-Alh">
-                                            <rect key="frame" x="0.0" y="0.0" width="402" height="44.666667938232422"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="402" height="44"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Lfz-gh-lyK">
@@ -162,20 +162,31 @@
                                                     <state key="normal" title="Button"/>
                                                     <buttonConfiguration key="configuration" style="plain" title="detail"/>
                                                     <connections>
+                                                        <action selector="detailButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="1VB-AX-WlM"/>
                                                         <segue destination="joa-A9-RQW" kind="show" id="Gm1-Vh-l5U"/>
                                                     </connections>
                                                 </button>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="USW-64-Wdk">
-                                                    <rect key="frame" x="20" y="11" width="43" height="21"/>
+                                                    <rect key="frame" x="86" y="11" width="43" height="21"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
+                                                <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rWc-4S-X3W">
+                                                    <rect key="frame" x="8" y="5" width="50" height="35"/>
+                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <state key="normal" title="Button"/>
+                                                    <buttonConfiguration key="configuration" style="plain" image="circle" catalog="system"/>
+                                                    <connections>
+                                                        <action selector="checkButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="bNM-BA-5u3"/>
+                                                    </connections>
+                                                </button>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
                                         <connections>
+                                            <outlet property="checkButton" destination="rWc-4S-X3W" id="DrM-98-lSf"/>
                                             <outlet property="detailButton" destination="Lfz-gh-lyK" id="btO-ks-Nep"/>
                                             <outlet property="nameLabel" destination="USW-64-Wdk" id="jQN-p2-nsa"/>
                                         </connections>
@@ -197,14 +208,14 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-1988" y="21"/>
+            <point key="canvasLocation" x="-1988.0597014925372" y="20.594965675057207"/>
         </scene>
         <!--Item Add View Controller-->
         <scene sceneID="Bd8-7t-7Hi">
             <objects>
                 <viewController storyboardIdentifier="ItemAddViewController" id="wRK-lu-rnE" customClass="ItemAddViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="uH5-bb-twf">
-                        <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
+                        <rect key="frame" x="0.0" y="0.0" width="402" height="864"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="UlY-Z3-N9v">
@@ -407,9 +418,10 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="Nww-L6-suw"/>
+        <segue reference="LPR-DD-hCu"/>
     </inferredMetricsTieBreakers>
     <resources>
+        <image name="circle" catalog="system" width="128" height="123"/>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
