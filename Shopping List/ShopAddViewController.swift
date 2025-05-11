@@ -26,30 +26,14 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     }
     
     @IBAction func selectLocationButtonTapped(_ sender: UIButton) {
-        // 地図を開く処理（MapViewControllerへ遷移）
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        if let mapVC = storyboard.instantiateViewController(withIdentifier: "MapViewController") as? MapViewController {
-            mapVC.delegate = self
-            navigationController?.pushViewController(mapVC, animated: true)
-        }
+        
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "toMap",
+        if segue.identifier == "toMapView",
            let mapVC = segue.destination as? MapViewController {
             mapVC.delegate = self
         }
-    }
-    
-    @IBAction func saveButtonTapped(_ sender: UIButton) {
-        guard let name = shopNameTextField.text, !name.isEmpty,
-        let lat = selectLatitude,
-        let lon = selectLongitude else {
-            return
-        }
-        
-        delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
-        navigationController?.popViewController(animated: true)
     }
     
     func didSelectLocation(latitude: Double, longitude: Double) {
@@ -57,4 +41,22 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
         selectLongitude = longitude
     }
     
+    @IBAction func saveButtonTapped(_ sender: UIButton) {
+        guard let name = shopNameTextField.text, !name.isEmpty else {
+            print("お店の名前が空です")
+            return
+        }
+        
+        guard let lat = selectLatitude, let lon = selectLongitude else {
+            print("座標が設定されていません")
+            return
+             }
+        print("保存ボタンが押された！name: \(name), lat: \(lat), lon: \(lon)")
+        delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
+        navigationController?.popViewController(animated: true)
+    }
+    
+    
+    
 }
+

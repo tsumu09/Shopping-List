@@ -19,6 +19,8 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
     @IBOutlet weak var mapView: MKMapView!
     weak var delegate: MapViewControllerDelegate?
     
+    var selectedCoordinate: CLLocationCoordinate2D?
+    
     let locationManager = CLLocationManager()
     
     override func viewDidLoad() {
@@ -55,15 +57,25 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
 
             let annotation = MKPointAnnotation()
             annotation.coordinate = coordinate
-            annotation.title = "選択された場所"
             mapView.addAnnotation(annotation)
-            
-            delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-            navigationController?.popViewController(animated: true)
+            selectedCoordinate = coordinate
         }
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("現在地の取得に失敗しました: \(error.localizedDescription)")
     }
+    
+    @IBAction func doneButtonTapped(_ sender: UIButton) {
+        guard let coordinate = selectedCoordinate else  {
+            print("座標が選ばれていません")
+            return
+        }
+        print("完了ボタンが押された！緯度: \(coordinate.latitude), 経度: \(coordinate.longitude)")
+            delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            navigationController?.popViewController(animated: true)
+        
+       
+    }
+    
 }

@@ -23,6 +23,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "ToShopAddView",
+           let navVC = segue.destination as? UINavigationController,
+           let addVC = navVC.topViewController as? ShopAddViewController {
+            addVC.delegate = self
+        }
+    }
+    
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
