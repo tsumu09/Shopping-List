@@ -10,9 +10,10 @@ import UIKit
 class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
     @IBOutlet weak var tableView: UITableView!
-    
+   
+    var saveDate: UserDefaults = UserDefaults.standard
 
-    var shops: [Shop] = []
+//    var shops: [Shop] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,14 +23,24 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         tableView.reloadData()
     }
     
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "ToShopAddView",
-           let navVC = segue.destination as? UINavigationController,
-           let addVC = navVC.topViewController as? ShopAddViewController {
-            addVC.delegate = self
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if let shops = (saveDate.object(forKey: "shops") as! [Shop]){
+            
+        } else{
+            var shops = []
         }
+        tableView.reloadData()
+        
     }
+    
+//    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+//        if segue.identifier == "ToShopAddView",
+//           let navVC = segue.destination as? UINavigationController,
+//           let addVC = navVC.topViewController as? ShopAddViewController {
+//            addVC.delegate = self
+//        }
+//    }
     
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -62,11 +73,11 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     @IBAction func addShopButtonTapped(_ sender: UIButton) {
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        if let shopAddVC = storyboard.instantiateViewController(withIdentifier: "ShopAddViewController") as? ShopAddViewController {
-            shopAddVC.delegate = self
-            navigationController?.pushViewController(shopAddVC, animated: true)
-        }
+////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+////        if let shopAddVC = storyboard.instantiateViewController(withIdentifier: "ShopAddViewController") as? ShopAddViewController {
+////            shopAddVC.delegate = self
+////            navigationController?.pushViewController(shopAddVC, animated: true)
+//        }
     }
     
     @IBAction func editPositionButtonTapped(_ sender: UIButton) {
@@ -75,11 +86,11 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     @objc func addItemButtonTapped(_ sender: UIButton) {
         let index = sender.tag
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        if let itemAddVC = storyboard.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
-            itemAddVC.selectedShopIndex = index
-            navigationController?.pushViewController(itemAddVC, animated: true)
-        }
+////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+////        if let itemAddVC = storyboard.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
+////            itemAddVC.selectedShopIndex = index
+////            navigationController?.pushViewController(itemAddVC, animated: true)
+//        }
     }
     
     func didAddItem(_ item: Item, toShopAt index: Int) {

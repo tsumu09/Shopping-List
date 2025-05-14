@@ -21,6 +21,10 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     var selectLatitude: Double?
     var selectLongitude: Double?
     
+    var saveDate:UserDefaults = UserDefaults.standard
+    
+    var shops: [Shop] = []
+    
     override func viewDidLoad() {
         super.viewDidLoad()
     }
@@ -50,8 +54,11 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
         guard let lat = selectLatitude, let lon = selectLongitude else {
             print("座標が設定されていません")
             return
-             }
+        }
         print("保存ボタンが押された！name: \(name), lat: \(lat), lon: \(lon)")
+        let shop = Shopping_List.Shop(name: name, latitude: lat , longitude: lon )
+        shops.append(shop)
+        saveDate.set(shops, forKey: "shops")
         delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
         navigationController?.popViewController(animated: true)
     }
