@@ -7,7 +7,7 @@
 
 import Foundation
 
-class Item {
+class Item: Codable {
     var name: String
     var importance: Int
     var deadline: Date?
@@ -34,7 +34,7 @@ class Item {
 
 }
 
-struct Shop {
+struct Shop: Codable {
     var name: String
     var latitude: Double
     var longitude: Double

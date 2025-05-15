@@ -13,7 +13,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
    
     var saveDate: UserDefaults = UserDefaults.standard
 
-//    var shops: [Shop] = []
+    var shops: [Shop] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,10 +25,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if let shops = (saveDate.object(forKey: "shops") as! [Shop]){
-            
-        } else{
-            var shops = []
+        if let data = UserDefaults.standard.data(forKey: "shops") {
+            if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+                shops = decoded
+            } else {
+                print("デコードに失敗しました")
+            }
+        } else {
+            print("shopsデータが存在しません")
         }
         tableView.reloadData()
         
