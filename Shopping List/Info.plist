@@ -4,6 +4,10 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>このアプリでは現在地を地図に表示します</string>
+	<key></key>
+	<string></string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>お店の近くに来たときに通知するために使います</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>アルバムから商品の写真を選択するためにアルバムを開きます</string>
 	<key>NSCameraUsageDescription</key>

@@ -39,7 +39,7 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-        
+        print("保存ボタンが押されました！")
         guard let name = nameTextField.text, !name.isEmpty,
               let priceText = priceTextField.text,
               let price = Int(priceText),

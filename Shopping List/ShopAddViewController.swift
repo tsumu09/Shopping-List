@@ -62,11 +62,22 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
         if let encoded = try? JSONEncoder().encode(shops) {
             UserDefaults.standard.set(encoded, forKey: "shops")
         }
+        startMonitoringShop(shop: shop)
+        
+        
         delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
         navigationController?.popViewController(animated: true)
     }
     
-    
+    func startMonitoringShop(shop: Shop) {
+        let center = CLLocationCoordinate2D(latitude: shop.latitude, longitude: shop.longitude)
+        let region = CLCircularRegion(center: center, radius: 100, identifier: shop.name)
+        region.notifyOnEntry = true
+        region.notifyOnExit = false
+        
+        locationManager.startMonitoring(for: region)
+      
+    }
     
 }
 

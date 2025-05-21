@@ -6,8 +6,12 @@
 //
 
 import UIKit
+import CoreLocation
+import UserNotifications
 
-class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+let locationManager = CLLocationManager()
+
+class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
     
     @IBOutlet weak var tableView: UITableView!
    
@@ -21,6 +25,17 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         tableView.dataSource = self
         loadCheckStates()
         tableView.reloadData()
+        
+        Shopping_List.locationManager.delegate = self
+        Shopping_List.locationManager.requestAlwaysAuthorization()
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
+            granted, error in
+            if granted {
+                print("通知の許可OK!")
+            } else {
+                print("通知の許可がもらえませんでした")
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -115,7 +130,17 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return 1 + shops[section].items.count
     }
 
-    // 各商品のセル
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        if region is CLCircularRegion {
+            let content = UNMutableNotificationContent()
+            content.title = "お店の近くに来ました！"
+            content.body = "\(region.identifier)の近くです。買い物をチェック！"
+            content.sound = .default
+
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
     
 
     // セクションヘッダーの表示（お店の名前＋ボタン）
