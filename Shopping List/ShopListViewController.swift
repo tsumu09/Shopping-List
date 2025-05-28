@@ -11,7 +11,7 @@ import UserNotifications
 
 let locationManager = CLLocationManager()
 
-class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
+class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate, ItemAddViewControllerDelegate {
     
     @IBOutlet weak var tableView: UITableView!
    
@@ -130,17 +130,47 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return 1 + shops[section].items.count
     }
 
-    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        if region is CLCircularRegion {
-            let content = UNMutableNotificationContent()
-            content.title = "お店の近くに来ました！"
-            content.body = "\(region.identifier)の近くです。買い物をチェック！"
-            content.sound = .default
+//    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+//        if region is CLCircularRegion {
+//            let content = UNMutableNotificationContent()
+//            content.title = "お店の近くに来ました！"
+//            content.body = "\(region.identifier)の近くです。買い物をチェック！"
+//            content.sound = .default
+//
+//            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+//            UNUserNotificationCenter.current().add(request)
+            
+            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+                guard let region = region as? CLCircularRegion else { return }
 
-            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request)
-        }
-    }
+                let shopName = region.identifier
+
+                // 対象のお店を探す
+                if let shop = shops.first(where: { $0.name == shopName }) {
+                    // チェックされてない（買ってない）商品があるか？
+                    let hasUncheckedItems = shop.items.contains(where: { !$0.isChecked })
+
+                    if hasUncheckedItems {
+                        // 通知を出す！
+                        let content = UNMutableNotificationContent()
+                        content.title = "\(shop.name)の近くです！"
+                        content.body = "まだ買ってない商品がありますよ🛒"
+                        content.sound = .default
+
+                        let request = UNNotificationRequest(
+                            identifier: UUID().uuidString,
+                            content: content,
+                            trigger: nil
+                        )
+
+                        UNUserNotificationCenter.current().add(request)
+                    } else {
+                        print("\(shop.name)には買うものがなかったので通知なし！")
+                    }
+                }
+            }
+        
+    
     
 
     // セクションヘッダーの表示（お店の名前＋ボタン）
@@ -210,3 +240,4 @@ extension ShopListViewController: ShopAddViewControllerDelegate {
         tableView.reloadData()
     }
 }
+

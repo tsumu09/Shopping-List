@@ -56,7 +56,7 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
         
         delegate?.didAddItem(newItem, toShopAt: selectedShopIndex)
         
-        dismiss(animated: true, completion: nil)
+        navigationController?.popViewController(animated: true)
         }
     
     

@@ -39,11 +39,14 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         mapView.addGestureRecognizer(longPress)
     }
-
+    
+    var hasSetIntialRegion = false
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        if let userLocation = locations.first {
-            let region = MKCoordinateRegion(center: userLocation.coordinate, latitudinalMeters: 100, longitudinalMeters: 100)
+        if !hasSetIntialRegion, let userLocation = locations.first {
+            let region = MKCoordinateRegion(center: userLocation.coordinate, latitudinalMeters: 500, longitudinalMeters: 500)
             mapView.setRegion(region, animated: true)
+            hasSetIntialRegion = true
         }
     }
     
