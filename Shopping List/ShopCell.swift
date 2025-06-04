@@ -11,6 +11,8 @@ class ShopCell: UITableViewCell {
     @IBOutlet weak var shopNameLabel: UILabel!
     @IBOutlet weak var addItemButton: UIButton!
     
+    
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
@@ -21,5 +23,5 @@ class ShopCell: UITableViewCell {
 
         // Configure the view for the selected state
     }
-
+    
 }

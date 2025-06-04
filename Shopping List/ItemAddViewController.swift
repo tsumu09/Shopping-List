@@ -41,21 +41,26 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         print("保存ボタンが押されました！")
         guard let name = nameTextField.text, !name.isEmpty,
-              let priceText = priceTextField.text,
-              let price = Int(priceText),
-              let detail = detailTextView.text,
               let selectedShopIndex = selectedShopIndex else {
+            print("名前が未入力か、selectedShopIndexがnilです")
             return
         }
-        
-        
+        let priceText = priceTextField.text ?? ""
+        let price = Int(priceText) ?? 0
+        let detail = detailTextView.text ?? ""
         let deadline = deadlineDatePicker.date
         let importance = importanceSegment.selectedSegmentIndex
         
         let newItem = Item(name: name, price: price, deadline: deadline, detail: detail, importance: importance)
         
-        delegate?.didAddItem(newItem, toShopAt: selectedShopIndex)
+        print("新しい商品作成: \(newItem)")
         
+        if let delegate = delegate {
+            delegate.didAddItem(newItem, toShopAt: selectedShopIndex)
+            print("delegateに渡しました")
+        } else {
+            print("delegateがnilです")
+        }
         navigationController?.popViewController(animated: true)
         }
     

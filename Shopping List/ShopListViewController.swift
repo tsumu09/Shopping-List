@@ -64,6 +64,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
+            print("お店のセルを表示中: \(shops[indexPath.section].name)")
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else{
                 return UITableViewCell()
             }
@@ -71,13 +72,13 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             cell.shopNameLabel.text = shops[indexPath.section].name
             cell.addItemButton.tag = indexPath.section
             cell.addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
-            
             return cell
         } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else{
                 return UITableViewCell()
             }
             let item = shops[indexPath.section].items[indexPath.row - 1]
+            print("商品を表示中: \(item.name)")
             cell.nameLabel.text = item.name
             cell.isChecked = item.isChecked
             
@@ -86,7 +87,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 cell.isChecked = item.isChecked
                 self?.saveCheckStates()
             }
-            
+            print("表示する商品名 : \(item.name)")
             return cell
         }
     }
@@ -108,14 +109,18 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     @objc func addItemButtonTapped(_ sender: UIButton) {
         let index = sender.tag
 ////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-////        if let itemAddVC = storyboard.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
-////            itemAddVC.selectedShopIndex = index
-////            navigationController?.pushViewController(itemAddVC, animated: true)
-//        }
+        if let itemAddVC = storyboard?.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
+            itemAddVC.selectedShopIndex = index
+            itemAddVC.delegate = self
+            navigationController?.pushViewController(itemAddVC, animated: true)
+        }
     }
     
     func didAddItem(_ item: Item, toShopAt index: Int) {
+        print("新しい商品作成: \(item)")
         shops[index].items.append(item)
+        print("現在のお店の商品数: \(shops[index].items.count)")
+        shops[index].isExpanded = true
         tableView.reloadData()
     }
     
@@ -127,7 +132,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     // 各セクションに表示する商品の数（isExpandedで制御）
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1 + shops[section].items.count
+        let shop = shops[section]
+        return shops[section].isExpanded ? 1 + shops[section].items.count : 1
     }
 
 //    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -209,6 +215,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         }
     }
     
+    
+    
     func saveCheckStates() {
         var checkStates: [[Bool]] = []
         for shop in shops {
@@ -235,7 +243,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
    
 extension ShopListViewController: ShopAddViewControllerDelegate {
     func didAddShop(name: String, latitude: Double, longitude: Double) {
-        let newShop = Shop(name: name, latitude: latitude, longitude: longitude, items: [])
+        let newShop = Shop(name: name, latitude: latitude, longitude: longitude, items: [], isExpanded: true)
         shops.append(newShop)
         tableView.reloadData()
     }
