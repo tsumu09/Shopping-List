@@ -19,6 +19,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     var shops: [Shop] = []
     
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.delegate = self
@@ -70,26 +72,15 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if indexPath.row == 0 {
-            print("お店のセルを表示中: \(shops[indexPath.section].name)")
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else{
-                return UITableViewCell()
-            }
-        
-            cell.shopNameLabel.text = shops[indexPath.section].name
-            cell.addItemButton.tag = indexPath.section
-            cell.addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
-            return cell
-        } else {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else{
                 return UITableViewCell()
             }
-            let item = shops[indexPath.section].items[indexPath.row - 1]
+            let item = shops[indexPath.section].items[indexPath.row]
             print("商品を表示中: \(item.name)")
             cell.nameLabel.text = item.name
             cell.isChecked = item.isChecked
             cell.detailLabel?.text = item.detail
-            cell.deadlineLabel.text = formatDate(item.deadline)
+            cell.deadlineLabel?.text = formatDate(item.deadline)
             cell.importance = item.importance
             
             cell.toggleCheckAction = { [weak self] in
@@ -103,7 +94,6 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             print("表示する商品名 : \(item.name)")
             return cell
         }
-    }
     
     @IBAction func addShopButtonTapped(_ sender: UIButton) {
 ////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
@@ -114,7 +104,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     @IBAction func editPositionButtonTapped(_ sender: UIButton) {
-        tableView.isEditing.toggle()
+//        tableView.isEditing.toggle()
     }
     
     
@@ -146,11 +136,15 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     func numberOfSections(in tableView: UITableView) -> Int {
         return shops.count
     }
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 60
+    }
 
     // 各セクションに表示する商品の数（isExpandedで制御）
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let shop = shops[section]
-        return shops[section].isExpanded ? 1 + shops[section].items.count : 1
+        return shops[section].isExpanded ?  +shops[section].items.count : 0
     }
             
             func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -186,7 +180,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     
 
-    // セクションヘッダーの表示（お店の名前＋ボタン）
+     //セクションヘッダーの表示（お店の名前＋ボタン）
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = UIView()
         headerView.backgroundColor = .systemGroupedBackground
@@ -195,7 +189,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         nameLabel.text = shops[section].name
         headerView.addSubview(nameLabel)
         
-        let toggleButton = UIButton(frame: CGRect(x: tableView.frame.width - 80, y: 5, width: 70, height: 30))
+        let toggleButton = UIButton(frame: CGRect(x: 20, y: 7, width: 70, height: 30))
         toggleButton.setTitle(shops[section].isExpanded ? "閉じる" : "表示", for: .normal)
         toggleButton.setTitleColor(.systemBlue, for: .normal)
         toggleButton.tag = section
@@ -250,6 +244,23 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             }
         }
     }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+                // ① モデル（shops配列）からアイテムを削除
+                shops[indexPath.section].items.remove(at: indexPath.row)
+                
+                // ② UserDefaults に保存し直す
+                if let encoded = try? JSONEncoder().encode(shops) {
+                    UserDefaults.standard.set(encoded, forKey: "shops")
+                }
+                
+                // ③ テーブルから行を削除
+                tableView.deleteRows(at: [indexPath], with: .automatic)
+            }
+
+        }
+
     
 }
     

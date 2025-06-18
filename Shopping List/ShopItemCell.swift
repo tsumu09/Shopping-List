@@ -54,11 +54,11 @@ class ShopItemCell: UITableViewCell {
     private func updateBackgroundColor() {
         switch importance {
         case 2:
-            contentView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.3)// 高
+            contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3)// 高
         case 1:
             contentView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3) // 中
         default:
-            contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3) // 低
+            contentView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.3) // 低
         }
     }
     
