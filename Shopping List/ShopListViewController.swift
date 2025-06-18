@@ -61,6 +61,13 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 //        }
 //    }
     
+    func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "未設定" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter.string(from: date)
+    }
+    
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
@@ -81,12 +88,18 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             print("商品を表示中: \(item.name)")
             cell.nameLabel.text = item.name
             cell.isChecked = item.isChecked
+            cell.detailLabel?.text = item.detail
+            cell.deadlineLabel.text = formatDate(item.deadline)
+            cell.importance = item.importance
             
             cell.toggleCheckAction = { [weak self] in
                 item.isChecked.toggle()
                 cell.isChecked = item.isChecked
                 self?.saveCheckStates()
             }
+            
+            cell.detailButton.tag = indexPath.section
+            cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
             print("表示する商品名 : \(item.name)")
             return cell
         }
@@ -121,6 +134,10 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         shops[index].items.append(item)
         print("現在のお店の商品数: \(shops[index].items.count)")
         shops[index].isExpanded = true
+        
+        if let encoded = try? JSONEncoder().encode(shops) {
+            UserDefaults.standard.set(encoded, forKey: "shops")
+        }
         tableView.reloadData()
     }
     
@@ -135,16 +152,6 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         let shop = shops[section]
         return shops[section].isExpanded ? 1 + shops[section].items.count : 1
     }
-
-//    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-//        if region is CLCircularRegion {
-//            let content = UNMutableNotificationContent()
-//            content.title = "お店の近くに来ました！"
-//            content.body = "\(region.identifier)の近くです。買い物をチェック！"
-//            content.sound = .default
-//
-//            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-//            UNUserNotificationCenter.current().add(request)
             
             func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
                 guard let region = region as? CLCircularRegion else { return }
@@ -205,13 +212,19 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     @objc func detailButtonTapped(_ sender: UIButton) {
+        print("詳細ボタンが押された")
         let section = sender.tag
         let selectedShop = shops[section]
+        
+        print("選ばれたお店名: \(selectedShop.name)")
+        print("商品数: \(selectedShop.items.count)")
         
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
             itemListVC.shop = selectedShop
             navigationController?.pushViewController(itemListVC, animated: true)
+        } else {
+            print("ItemListViewControllerが見つかりません")
         }
     }
     

@@ -12,16 +12,16 @@ class ItemCell: UITableViewCell {
     @IBOutlet weak var deadlineLabel: UILabel!
     @IBOutlet weak var detailLabel: UILabel!
     
-    var importance: Int = 0 {
-        didSet {
-            switch importance {
-            case 1:
-                backgroundColor = UIColor.yellow.withAlphaComponent(0.3)
-            case 2:
-                backgroundColor = UIColor.red.withAlphaComponent(0.3)
-            default:
-                backgroundColor = UIColor.white
-            }
-        }
-    }
+    var importance: Int = 0 /*{*/
+//        didSet {
+//            switch importance {
+//            case 1:
+//                backgroundColor = UIColor.yellow.withAlphaComponent(0.3)
+//            case 2:
+//                backgroundColor = UIColor.red.withAlphaComponent(0.3)
+//            default:
+//                backgroundColor = UIColor.white
+//            }
+//        }
+//    }
 }

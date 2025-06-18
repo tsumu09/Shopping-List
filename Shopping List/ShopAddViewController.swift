@@ -56,7 +56,7 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
             return
         }
         print("保存ボタンが押された！name: \(name), lat: \(lat), lon: \(lon)")
-        let shop = Shopping_List.Shop(name: name, latitude: lat , longitude: lon )
+        let shop = Shop(name: name, latitude: lat , longitude: lon, items: [], isExpanded: true )
         shops.append(shop)
 //        saveDate.set(shops, forKey: "shops")
         if let encoded = try? JSONEncoder().encode(shops) {

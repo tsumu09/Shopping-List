@@ -13,6 +13,8 @@ protocol ItemAddViewControllerDelegate: AnyObject {
 
 class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
+    var saveDate:UserDefaults = UserDefaults.standard
+    
     @IBOutlet weak var itemImageView: UIImageView!
     
     @IBAction func selectImageTapped(_ sender: UIButton) {
@@ -61,9 +63,11 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
         } else {
             print("delegateがnilです")
         }
-        navigationController?.popViewController(animated: true)
+        if let encoded = try? JSONEncoder().encode(newItem) {
+            UserDefaults.standard.set(encoded, forKey: "items")
         }
-    
+        navigationController?.popViewController(animated: true)
+    }
     
     weak var delegate: ItemAddViewControllerDelegate?
     var selectedShopIndex: Int?

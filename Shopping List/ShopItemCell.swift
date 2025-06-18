@@ -13,8 +13,12 @@ protocol ShopItemCellDelegate: AnyObject {
 
 class ShopItemCell: UITableViewCell {
     @IBOutlet weak var nameLabel: UILabel!
+    @IBOutlet weak var importanceLabel: UILabel!
     @IBOutlet weak var detailButton: UIButton!
     @IBOutlet weak var checkButton: UIButton!
+    @IBOutlet weak var priceLabel: UILabel!
+    @IBOutlet weak var detailLabel: UILabel!
+    @IBOutlet weak var deadlineLabel: UILabel!
     
     weak var delegate: ShopItemCellDelegate?
     var item: Item?
@@ -26,10 +30,10 @@ class ShopItemCell: UITableViewCell {
     }
     var toggleCheckAction: (() -> Void)?
     
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        updateCheckButton()
-    }
+//    override func awakeFromNib() {
+//        super.awakeFromNib()
+//        updateCheckButton()
+//    }
     
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
@@ -43,17 +47,24 @@ class ShopItemCell: UITableViewCell {
     
     var importance: Int = 0 {
         didSet {
-            switch importance {
-            case 0:
-                backgroundColor = UIColor.systemRed.withAlphaComponent(0.3) // 高
-            case 1:
-                backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3) // 中
-            case 2:
-                backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3) // 低
-            default:
-                backgroundColor = UIColor.white
-            }
+            updateBackgroundColor()
         }
+    }
+    
+    private func updateBackgroundColor() {
+        switch importance {
+        case 2:
+            contentView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.3)// 高
+        case 1:
+            contentView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3) // 中
+        default:
+            contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3) // 低
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        contentView.backgroundColor = .white
     }
     
     @IBAction func detailButtonTapped(_ sender: UIButton) {

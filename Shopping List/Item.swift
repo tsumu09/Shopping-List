@@ -23,22 +23,8 @@ class Item: Codable {
         self.importance = importance
         self.isChecked = isChecked
     }
-    
-    struct Item {
-        let name: String
-        let price: Int
-        let date: Date
-        let detail: String
-        let priority: Int
-    }
 
 }
 
-struct Shop: Codable {
-    var name: String
-    var latitude: Double
-    var longitude: Double
-    var items: [Item] = []
-    var isExpanded: Bool = false
-}
+
 
