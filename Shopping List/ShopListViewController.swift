@@ -28,6 +28,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         loadCheckStates()
         tableView.reloadData()
         
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
+        
         Shopping_List.locationManager.delegate = self
         Shopping_List.locationManager.requestAlwaysAuthorization()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
@@ -37,6 +39,15 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             } else {
                 print("通知の許可がもらえませんでした")
             }
+        }
+    }
+    
+    @objc func reloadShops() {
+        if let data = UserDefaults.standard.data(forKey: "shops"),
+           let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+            shops = decoded
+            tableView.reloadData()
+            print("一覧に最新のshopsを反映したよ！")
         }
     }
     
@@ -108,8 +119,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     
-    
-    @objc func addItemButtonTapped(_ sender: UIButton) {
+    @IBAction func addItemButtonTapped(_ sender: UIButton) {
         let index = sender.tag
 ////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
         if let itemAddVC = storyboard?.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
@@ -185,11 +195,11 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         let headerView = UIView()
         headerView.backgroundColor = .systemGroupedBackground
         
-        let nameLabel = UILabel(frame: CGRect(x: 16, y: 0, width: 200, height: 40))
+        let nameLabel = UILabel(frame: CGRect(x: 16, y: 10, width: 200, height: 40))
         nameLabel.text = shops[section].name
         headerView.addSubview(nameLabel)
         
-        let toggleButton = UIButton(frame: CGRect(x: 20, y: 7, width: 70, height: 30))
+        let toggleButton = UIButton(frame: CGRect(x: 320, y: 10, width: 70, height: 40))
         toggleButton.setTitle(shops[section].isExpanded ? "閉じる" : "表示", for: .normal)
         toggleButton.setTitleColor(.systemBlue, for: .normal)
         toggleButton.tag = section
@@ -210,12 +220,21 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         let section = sender.tag
         let selectedShop = shops[section]
         
+            let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
+
+            let selectedItem = shops[section].items[indexPath.row]  // -1はShopCellがrow 0のとき用
+        
+    
+       
         print("選ばれたお店名: \(selectedShop.name)")
         print("商品数: \(selectedShop.items.count)")
         
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
-            itemListVC.shop = selectedShop
+            itemListVC.item = selectedItem
+            itemListVC.selectedShopIndex = section
+            itemListVC.selectedShopIndex = indexPath.section
+            itemListVC.selectedItemIndex = indexPath.row
             navigationController?.pushViewController(itemListVC, animated: true)
         } else {
             print("ItemListViewControllerが見つかりません")
