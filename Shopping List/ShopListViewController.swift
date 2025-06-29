@@ -119,7 +119,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     
-    @IBAction func addItemButtonTapped(_ sender: UIButton) {
+    @objc func addItemButtonTapped(_ sender: UIButton) {
         let index = sender.tag
 ////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
         if let itemAddVC = storyboard?.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
@@ -195,16 +195,24 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         let headerView = UIView()
         headerView.backgroundColor = .systemGroupedBackground
         
-        let nameLabel = UILabel(frame: CGRect(x: 16, y: 10, width: 200, height: 40))
+        let nameLabel = UILabel(frame: CGRect(x: 50, y: 10, width: 200, height: 40))
         nameLabel.text = shops[section].name
         headerView.addSubview(nameLabel)
         
-        let toggleButton = UIButton(frame: CGRect(x: 320, y: 10, width: 70, height: 40))
-        toggleButton.setTitle(shops[section].isExpanded ? "閉じる" : "表示", for: .normal)
-        toggleButton.setTitleColor(.systemBlue, for: .normal)
+        let toggleButton = UIButton(frame: CGRect(x: 0, y: 10, width: 70, height: 40))
+        toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
+//        toggleButton.setTitleColor(.systemBlue, for: .normal)
         toggleButton.tag = section
         toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
         headerView.addSubview(toggleButton)
+        
+        let addItemButton = UIButton(type: .system)
+           addItemButton.setTitle("＋", for: .normal)  // または setImage にしてアイコンにもできる！
+           addItemButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
+           addItemButton.frame = CGRect(x: tableView.frame.width - 60, y: 10, width: 40, height: 40)
+           addItemButton.tag = section  // どのセクションかを記録！
+           addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
+           headerView.addSubview(addItemButton)
         
         return headerView
     }
