@@ -49,12 +49,12 @@ final class FirestoreManager {
             .replacingOccurrences(of: "@", with: "-")
     }
     
-    struct FirestoreUser {
-        let firstName: String
-        let lastName: String
-        let emailAddress: String
-        var safeEmail: String {
-            return FirestoreManager.safeEmail(emailAddress)
-        }
+}
+struct FirestoreUser {
+    let firstName: String
+    let lastName: String
+    let emailAddress: String
+    var safeEmail: String {
+        return FirestoreManager.safeEmail(emailAddress)
     }
 }
