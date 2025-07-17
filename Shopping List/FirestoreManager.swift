@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 
 final class FirestoreManager {
     static let shared = FirestoreManager()
@@ -49,6 +50,27 @@ final class FirestoreManager {
             .replacingOccurrences(of: "@", with: "-")
     }
     
+    
+    
+    func createGroup (name: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let groupRef = db.collection ("groups").document ()
+        let data: [String: Any] = [
+            "name":name,
+            "ownerId": uid
+        ]
+        // トランザクションで group 本体と membersの初期登録を同時に
+        db.runTransaction({ tx, _ in
+            tx.setData(data, forDocument: groupRef)
+            tx.setData(["joinedAt": Timestamp(), "displayName": Auth.auth().currentUser?.displayName ?? ""],
+                       forDocument:
+                        groupRef.collection("members").document(uid))
+            return nil
+        }) {_, error in
+            if let e = error { completion(. failure (e)) }
+            else { completion(.success(groupRef.documentID)) }
+        }
+    }
 }
 struct FirestoreUser {
     let firstName: String
@@ -58,3 +80,5 @@ struct FirestoreUser {
         return FirestoreManager.safeEmail(emailAddress)
     }
 }
+                
+                
