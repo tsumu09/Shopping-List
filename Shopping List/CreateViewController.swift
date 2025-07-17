@@ -7,6 +7,7 @@
 
 import UIKit
 import FirebaseAuth
+import FirebaseFirestore
 
 
 class CreateViewController: UIViewController {
@@ -43,7 +44,7 @@ class CreateViewController: UIViewController {
         }
         
         //FirestoreService でグループ作成
-        FirestoreService.shared.createGroup(name: name) { [weak self] result in
+        FirestoreManager.shared.createGroup(name: name) { [weak self] result in
             guard let self = self else { return }
             self.setLoading(false)
             switch result {
@@ -56,7 +57,7 @@ class CreateViewController: UIViewController {
                     .collection("users")
                     .document(uid)
                     .updateData(["groupId": groupId]) { error in
-                        if let eroor = error {
+                        if let error = error {
                             self.presentAlert(title: "エラー", message: error.localizedDescription)
                         } else {
                             //ホーム画面へ

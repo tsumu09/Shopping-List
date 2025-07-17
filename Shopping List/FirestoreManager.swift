@@ -67,7 +67,7 @@ final class FirestoreManager {
                         groupRef.collection("members").document(uid))
             return nil
         }) {_, error in
-            if let e = error { completion(. failure (e)) }
+            if let e = error { completion(.failure (e)) }
             else { completion(.success(groupRef.documentID)) }
         }
     }
