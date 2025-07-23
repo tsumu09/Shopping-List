@@ -12,6 +12,9 @@ import FirebaseFirestore
 
 class CreateViewController: UIViewController {
     
+    var onGroupCreated: (() -> Void)?
+
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -52,15 +55,21 @@ class CreateViewController: UIViewController {
                 self.presentAlert(title: "作成失敗", message: error.localizedDescription)
             case .success(let groupId):
                 //ユーザードキュメントに groupId を保存
+
                 guard let uid = Auth.auth().currentUser?.uid else {return}
                 Firestore.firestore()
                     .collection("users")
                     .document(uid)
-                    .updateData(["groupId": groupId]) { error in
+                    .setData(["groupId": groupId], merge: true) { error in
                         if let error = error {
                             self.presentAlert(title: "エラー", message: error.localizedDescription)
                         } else {
                             //ホーム画面へ
+                            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+                            if let shopListVC = storyboard.instantiateViewController(withIdentifier: "ShopListViewController") as? ShopListViewController {
+                                self.navigationController?.pushViewController(shopListVC, animated: true)
+                            }
+
                         }
                     }
             }

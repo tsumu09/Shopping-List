@@ -8,17 +8,26 @@
 import UIKit
 import CoreLocation
 import UserNotifications
+import FirebaseAuth
+import FirebaseFirestore
 
 let locationManager = CLLocationManager()
 
 class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate, ItemAddViewControllerDelegate {
     
     @IBOutlet weak var tableView: UITableView!
-   
+    @IBOutlet weak var familyLabel: UILabel!
+    
     var saveDate: UserDefaults = UserDefaults.standard
 
     var shops: [Shop] = []
-    
+    var groupId: String?
+    var expandedSections: Set<Int> = []
+    var listener: ListenerRegistration?
+    var shopId: String?
+    var selectedShopIndex: Int?
+    weak var delegate: ItemAddViewControllerDelegate?
+
     
     
     override func viewDidLoad() {
@@ -27,6 +36,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         tableView.dataSource = self
         loadCheckStates()
         tableView.reloadData()
+        fetchGroupAndObserve()
         
         NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
         
@@ -63,6 +73,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             print("shopsデータが存在しません")
         }
         tableView.reloadData()
+        fetchGroupAndObserve()
         
     }
     
@@ -121,13 +132,18 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     @objc func addItemButtonTapped(_ sender: UIButton) {
         let index = sender.tag
-////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let selectedShop = shops[index] // ← 選択されたお店
+
         if let itemAddVC = storyboard?.instantiateViewController(withIdentifier: "ItemAddViewController") as? ItemAddViewController {
             itemAddVC.selectedShopIndex = index
+            itemAddVC.groupId = self.groupId            // ← groupIdを渡す
+            itemAddVC.shopId = selectedShop.id          // ← 選択されたshopのIDを渡す
             itemAddVC.delegate = self
+            
             navigationController?.pushViewController(itemAddVC, animated: true)
         }
     }
+
     
     func didAddItem(_ item: Item, toShopAt index: Int) {
         print("新しい商品作成: \(item)")
@@ -188,11 +204,93 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             }
         
     
-    
+    private func fetchGroupAndObserve() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users")
+            .document(uid)
+            .getDocument { [weak self] snap, _ in
+                guard let self = self,
+                      let data = snap?.data(),
+                      let gid = data["groupId"] as? String else { return }
+                
+                self.groupId = gid
+                self.expandedSections = Set(0..<self.shops.count)
+                
+                db.collection("groups")
+                    .document(gid)
+                    .getDocument { groupSnap, _ in
+                        if let gdata = groupSnap?.data(),
+                           let groupName = gdata["name"] as? String {
+                            DispatchQueue.main.async {
+                                self.familyLabel.text = "\(groupName)のお買い物リスト"
+                            }
+                        }
+                    }
+                
+                //  ここでリアルタイム監視開始！
+                db.collection("groups")
+                  .document(gid)
+                  .collection("shops")
+                  .addSnapshotListener { [weak self] snapshot, error in
+                    guard let self = self,
+                          let documents = snapshot?.documents else { return }
 
-     //セクションヘッダーの表示（お店の名前＋ボタン）
-    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        let headerView = UIView()
+                    var loadedShops: [Shop] = []
+                    
+                    let group = DispatchGroup()
+                    
+                    for doc in documents {
+                        let data = doc.data()
+                        let shopId = doc.documentID
+                        let name = data["name"] as? String ?? ""
+                        let latitude = data["latitude"] as? Double ?? 0.0
+                        let longitude = data["longitude"] as? Double ?? 0.0
+                        
+                        var shop = Shop(name: name, latitude: latitude, longitude: longitude, items: [], isExpanded: true)
+                        
+                        group.enter()
+                        db.collection("groups")
+                          .document(gid)
+                          .collection("shops")
+                          .document(shopId)
+                          .collection("items")
+                          .addSnapshotListener { itemSnap, _ in
+                              guard let itemDocs = itemSnap?.documents else {
+                                  group.leave()
+                                  return
+                              }
+
+                              shop.items = itemDocs.compactMap { itemDoc in
+                                  let itemData = itemDoc.data()
+                                  return Item(
+                                      name: itemData["name"] as? String ?? "",
+                                      price: itemData["price"] as? Int ?? 0,
+                                      deadline: (itemData["deadline"] as? Timestamp)?.dateValue() ?? Date(),
+                                      detail: itemData["detail"] as? String ?? "",
+                                      importance: itemData["importance"] as? Int ?? 0,
+                                      isChecked: itemData["isChecked"] as? Bool ?? false
+                                  )
+                              }
+                              
+
+                              loadedShops.append(shop)
+                              group.leave()
+                          }
+                    }
+                    
+                    group.notify(queue: .main) {
+                        self.shops = loadedShops
+                        self.tableView.reloadData()
+                    }
+                }
+            }
+    }
+
+    //セクションヘッダーの表示（お店の名前＋ボタン）
+   func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+       let headerView = UIView()
         headerView.backgroundColor = .systemGroupedBackground
         
         let nameLabel = UILabel(frame: CGRect(x: 50, y: 10, width: 200, height: 40))

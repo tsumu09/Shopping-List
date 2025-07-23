@@ -48,7 +48,7 @@ class SignUpViewController: UIViewController {
                 print("サインインしました")
                 let User = FirestoreUser(firstName: firstName, lastName: lastName, emailAddress: email)
                 // userExists()でFirestoreにすでにユーザー情報(メールアドレス)が保存されていないかチェックする
-                FirestoreManager.shared.userExists(email: email) { exists in
+                FirestoreManager.shared.userExists(uid: email) { exists in
                     if exists {
                         print("メールアドレスがすでに保存されています")
                         return
@@ -57,6 +57,18 @@ class SignUpViewController: UIViewController {
                     FirestoreManager.shared.insertUser(User, completion: { success in
                         if success {
                             print("ユーザー情報の保存が完了しました")
+                            
+                            DispatchQueue.main.async {
+                                       let storyboard = UIStoryboard(name: "Main", bundle: nil)
+                                       if let groupVC = storyboard.instantiateViewController(withIdentifier: "GroupViewController") as? GroupViewController {
+                                           if let nav = strongSelf.navigationController {
+                                                               nav.pushViewController(groupVC, animated: true)
+                                                           } else {
+                                                               groupVC.modalPresentationStyle = .fullScreen
+                                                               strongSelf.present(groupVC, animated: true)
+                                                           }
+                                       }
+                                   }
                             return
                         }
                     })

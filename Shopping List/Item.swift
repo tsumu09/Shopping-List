@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FirebaseFirestore
 
 class Item: Codable {
     var name: String
@@ -15,7 +16,7 @@ class Item: Codable {
     var price: Int
     var isChecked: Bool
     
-    init(name: String, price: Int, deadline: Date, detail: String, importance: Int, isChecked: Bool = false) {
+    init(name: String, price: Int, deadline: Date? = nil, detail: String, importance: Int, isChecked: Bool = false) {
         self.name = name
         self.price = price
         self.deadline = deadline
