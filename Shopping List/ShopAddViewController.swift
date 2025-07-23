@@ -14,16 +14,16 @@ protocol ShopAddViewControllerDelegate: AnyObject {
 
 class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     
+    var selectLatitude: Double?
+    var selectLongitude: Double?
+    var saveDate:UserDefaults = UserDefaults.standard
+    var shops: [Shop] = []
+    var groupId: String!
+
     @IBOutlet weak var shopNameTextField: UITextField!
     
     weak var delegate: ShopAddViewControllerDelegate?
     
-    var selectLatitude: Double?
-    var selectLongitude: Double?
-    
-    var saveDate:UserDefaults = UserDefaults.standard
-    
-    var shops: [Shop] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,17 +56,26 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
             return
         }
         print("保存ボタンが押された！name: \(name), lat: \(lat), lon: \(lon)")
-        let shop = Shop(name: name, latitude: lat , longitude: lon, items: [], isExpanded: true )
-        shops.append(shop)
-//        saveDate.set(shops, forKey: "shops")
-        if let encoded = try? JSONEncoder().encode(shops) {
-            UserDefaults.standard.set(encoded, forKey: "shops")
-        }
-        startMonitoringShop(shop: shop)
         
+//        startMonitoringShop(shop: shop)
         
-        delegate?.didAddShop(name: name, latitude: lat, longitude: lon)
-        navigationController?.popViewController(animated: true)
+        FirestoreManager.shared.addShop(
+                    to: groupId,
+                    name: name,
+                    latitude: lat,
+                    longitude: lon
+                ) { [weak self] error in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        if let err = error {
+                            self.presentAlert(title: "登録失敗",message: err.localizedDescription)
+                        } else {
+                            
+                        self.navigationController?
+                                .popViewController(animated: true)
+                        }
+                    }
+                }
     }
     
     func startMonitoringShop(shop: Shop) {
@@ -79,5 +88,12 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
       
     }
     
+    private func presentAlert(title: String, message: String) {
+            let a = UIAlertController(title: title,
+                                      message: message,
+                                      preferredStyle: .alert)
+            a.addAction(.init(title: "OK", style: .default))
+            present(a, animated: true)
+        }
 }
 

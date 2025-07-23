@@ -54,7 +54,47 @@ final class FirestoreManager {
                     .replacingOccurrences(of: "@", with: "-")
     }
     
- 
+    func addShop(to groupId: String, name: String, latitude: Double, longitude: Double, completion: @escaping (Error?) -> Void) {
+            let shopRef = db
+                .collection("groups").document(groupId)
+                .collection("shops").document()
+            let data: [String: Any] = [
+                "name": name,
+                "latitude": latitude,
+                "longitude": longitude
+            ]
+            shopRef.setData(data) { error in
+                completion(error)
+            }
+        }
+    
+    func addItem(to groupId: String,
+                     shopId: String,
+                     name: String,
+                     price: Double,
+                     importance: Int,
+                 detail: String,
+                     completion: @escaping (Error?) -> Void) {
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            let itemRef = db
+                .collection("groups").document(groupId)
+                .collection("shops").document(shopId)
+                .collection("items").document()
+            let data: [String: Any] = [
+                "name": name,
+                "price": price,
+                "importance": importance,
+                "requestedBy": uid,
+                "createdAt": Timestamp(),
+                "detail": detail
+            ]
+            itemRef.setData(data) { error in
+                completion(error)
+            }
+        }
+
+
+    
     
     /// グループ作成（トランザクションでグループ本体＋メンバー初期追加）
     func createGroup(name: String, completion: @escaping (Result<String, Error>) -> Void) {
@@ -229,28 +269,6 @@ struct FirestoreUser {
 
 extension FirestoreManager {
     
-    func addItemToShop(groupId: String, shopId: String, item: Item, completion: @escaping (Result<Void, Error>) -> Void) {
-        let itemData: [String: Any] = [
-            "name": item.name,
-            "price": item.price,
-            "deadline": Timestamp(date: item.deadline ?? Date()),
-            "detail": item.detail,
-            "importance": item.importance,
-            "isChecked": item.isChecked
-        ]
-        
-        db.collection("groups")
-            .document(groupId)
-            .collection("shops")
-            .document(shopId)
-            .collection("items")
-            .addDocument(data: itemData) { error in
-                if let error = error {
-                    completion(.failure(error))
-                } else {
-                    completion(.success(()))
-                }
-            }
-    }
+    
 
 }

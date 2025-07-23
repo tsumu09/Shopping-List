@@ -20,7 +20,7 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
     weak var delegate: MapViewControllerDelegate?
     
     var selectedCoordinate: CLLocationCoordinate2D?
-    
+    var groupId: String!
     let locationManager = CLLocationManager()
     
     override func viewDidLoad() {

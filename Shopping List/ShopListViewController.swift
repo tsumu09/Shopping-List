@@ -21,7 +21,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var saveDate: UserDefaults = UserDefaults.standard
 
     var shops: [Shop] = []
-    var groupId: String?
+    var groupId: String!
     var expandedSections: Set<Int> = []
     var listener: ListenerRegistration?
     var shopId: String?
@@ -118,12 +118,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         }
     
     @IBAction func addShopButtonTapped(_ sender: UIButton) {
-////        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-////        if let shopAddVC = storyboard.instantiateViewController(withIdentifier: "ShopAddViewController") as? ShopAddViewController {
-////            shopAddVC.delegate = self
-////            navigationController?.pushViewController(shopAddVC, animated: true)
-//        }
-    }
+                guard let gid = groupId else { return }
+                let mapVC = UIStoryboard(name: "Main", bundle: nil)
+                    .instantiateViewController(identifier: "ShopAddViewController")
+                as! ShopAddViewController
+                mapVC.groupId = gid
+                navigationController?.pushViewController(mapVC, animated: true)
+            }
+    
     
     @IBAction func editPositionButtonTapped(_ sender: UIButton) {
 //        tableView.isEditing.toggle()

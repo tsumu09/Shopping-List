@@ -17,8 +17,9 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     var saveDate:UserDefaults = UserDefaults.standard
     var shops: [Shop] = []
-    var groupId: String?
-    var shopId: String?
+    var groupId: String!
+    var shopId: String!
+    
     
     @IBOutlet weak var itemImageView: UIImageView!
     
@@ -48,6 +49,8 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
         print("保存ボタンが押されました！")
 
         guard let name = nameTextField.text, !name.isEmpty,
+              let price = String(priceTextField).text,
+             
               let selectedShopIndex = selectedShopIndex,
               let groupId = self.groupId,
               let shopId = self.shopId else {
@@ -55,25 +58,9 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
             return
         }
 
-        let priceText = priceTextField.text ?? ""
-        let price = Int(priceText) ?? 0
-        let detail = detailTextView.text ?? ""
-        let deadline = deadlineDatePicker.date
-        let importance = importanceSegment.selectedSegmentIndex
-
-        let newItem = Item(name: name, price: price, deadline: deadline, detail: detail, importance: importance)
-        print("新しい商品作成: \(newItem)")
-
-        // delegateで画面遷移元に通知
-        delegate?.didAddItem(newItem, toShopAt: selectedShopIndex)
-
-        // UserDefaultsに保存（任意）
-        if let encoded = try? JSONEncoder().encode(newItem) {
-            UserDefaults.standard.set(encoded, forKey: "items")
-        }
-
         // Firestoreに保存
-        FirestoreManager.shared.addItemToShop(groupId: groupId, shopId: shopId, item: newItem) { result in
+        FirestoreManager.shared.addItem
+        (to: groupId, shopId: shopId, name: name, price: price, importance: importace, detail: detail) { result in
             switch result {
             case .success():
                 print("Firestoreにアイテムを保存しました")
