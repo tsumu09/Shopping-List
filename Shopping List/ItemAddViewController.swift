@@ -46,34 +46,38 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-        print("保存ボタンが押されました！")
-
-        guard let name = nameTextField.text, !name.isEmpty,
-              let price = String(priceTextField).text,
-             
-              let selectedShopIndex = selectedShopIndex,
-              let groupId = self.groupId,
-              let shopId = self.shopId else {
-            print("入力不備（name / selectedShopIndex / groupId / shopId）")
-            return
-        }
-
-        // Firestoreに保存
-        FirestoreManager.shared.addItem
-        (to: groupId, shopId: shopId, name: name, price: price, importance: importace, detail: detail) { result in
-            switch result {
-            case .success():
-                print("Firestoreにアイテムを保存しました")
+            print("保存ボタンが押されました！")
+            guard let name = nameTextField.text, !name.isEmpty,
+                  let priceText = priceTextField.text, !priceText.isEmpty,
+                  let groupId = self.groupId,
+                  let shopId = self.shopId else {
+                print("入力不備（name / selectedShopIndex / groupId / shopId）")
+                return
+            }
+            let price = Double(priceText) ?? 0
+            let detail = detailTextView.text ?? ""
+            let importance = importanceSegment.selectedSegmentIndex + 1
+            // Firestoreに保存
+            FirestoreManager.shared.addItem(
+                to: groupId,
+                shopId: shopId,
+                name: name,
+                price: price,
+                importance: importance,
+                detail: detail
+            ) { [weak self] error in
                 DispatchQueue.main.async {
-                    self.navigationController?.popViewController(animated: true)
+                    sender.isEnabled = true
+                    if let err = error {
+                        // 登録失敗
+                    } else {
+                        // 登録完了 → 一つ前の画面（ShoppingListVC）に戻る
+                        self?.navigationController?.popViewController(animated: true)
+                    }
                 }
-            case .failure(let error):
-                print("Firestore保存失敗: \(error.localizedDescription)")
             }
         }
-        // 前の画面に戻る
-        navigationController?.popViewController(animated: true)
-    }
+
 
     
     weak var delegate: ItemAddViewControllerDelegate?
