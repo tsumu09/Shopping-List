@@ -169,12 +169,12 @@ final class FirestoreManager {
                         .getDocuments { itemsSnap, _ in
                             shop.items = itemsSnap?.documents.compactMap { i in
                                 Item(
-                                    name: i.documentID,
-                                    importance: i["name"] as? Int ?? 0,
-                                    deadline: i["price"] as? Date ?? Date(),
+                                    name: i["name"] as? String ?? "",
+                                    importance: i["importance"] as? Int ?? 0,
+                                    deadline: i["deadline"] as? Date ?? Date(),
                                     detail: i["detail"] as? String ?? "",
-                                    price: i["importance"] as? Int ?? 0,
-                                    id: i["requestedBy"] as? String ?? "",
+                                    price: i["price"] as? Int ?? 0,
+                                    id: i.documentID,
                                     requestedBy: i["deadline"] as? String ?? ""
                                 )
                             } ?? []

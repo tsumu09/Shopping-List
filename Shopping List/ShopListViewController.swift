@@ -13,7 +13,7 @@ import FirebaseFirestore
 
 let locationManager = CLLocationManager()
 
-class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate, ItemAddViewControllerDelegate {
+class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
     
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var familyLabel: UILabel!
@@ -34,11 +34,11 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
-        loadCheckStates()
+//        loadCheckStates()
         tableView.reloadData()
         fetchGroupAndObserve()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
         
         Shopping_List.locationManager.delegate = self
         Shopping_List.locationManager.requestAlwaysAuthorization()
@@ -52,27 +52,27 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         }
     }
     
-    @objc func reloadShops() {
-        if let data = UserDefaults.standard.data(forKey: "shops"),
-           let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
-            shops = decoded
-            tableView.reloadData()
-            print("一覧に最新のshopsを反映したよ！")
-        }
-    }
+//    @objc func reloadShops() {
+//        if let data = UserDefaults.standard.data(forKey: "shops"),
+//           let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+//            shops = decoded
+//            tableView.reloadData()
+//            print("一覧に最新のshopsを反映したよ！")
+//        }
+//    }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if let data = UserDefaults.standard.data(forKey: "shops") {
-            if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
-                shops = decoded
-            } else {
-                print("デコードに失敗しました")
-            }
-        } else {
-            print("shopsデータが存在しません")
-        }
-        tableView.reloadData()
+//        if let data = UserDefaults.standard.data(forKey: "shops") {
+//            if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+//                shops = decoded
+//            } else {
+//                print("デコードに失敗しました")
+//            }
+//        } else {
+//            print("shopsデータが存在しません")
+//        }
+//        tableView.reloadData()
         fetchGroupAndObserve()
         
     }
@@ -99,17 +99,16 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             }
             let item = shops[indexPath.section].items[indexPath.row]
             print("商品を表示中: \(item.name)")
-            cell.nameLabel.text = item.name
-            cell.isChecked = item.isChecked
+//            cell.nameLabel.text = item.name
             cell.detailLabel?.text = item.detail
             cell.deadlineLabel?.text = formatDate(item.deadline)
             cell.importance = item.importance
             
-            cell.toggleCheckAction = { [weak self] in
-                item.isChecked.toggle()
-                cell.isChecked = item.isChecked
-                self?.saveCheckStates()
-            }
+//            cell.toggleCheckAction = { [weak self] in
+//                item.isChecked.toggle()
+//                cell.isChecked = item.isChecked
+//                self?.saveCheckStates()
+//            }
             
             cell.detailButton.tag = indexPath.section
             cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
@@ -140,24 +139,24 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             itemAddVC.selectedShopIndex = index
             itemAddVC.groupId = self.groupId            // ← groupIdを渡す
             itemAddVC.shopId = selectedShop.id          // ← 選択されたshopのIDを渡す
-            itemAddVC.delegate = self
+//            itemAddVC.delegate = self
             
             navigationController?.pushViewController(itemAddVC, animated: true)
         }
     }
 
     
-    func didAddItem(_ item: Item, toShopAt index: Int) {
-        print("新しい商品作成: \(item)")
-        shops[index].items.append(item)
-        print("現在のお店の商品数: \(shops[index].items.count)")
-        shops[index].isExpanded = true
-        
-        if let encoded = try? JSONEncoder().encode(shops) {
-            UserDefaults.standard.set(encoded, forKey: "shops")
-        }
-        tableView.reloadData()
-    }
+//    func didAddItem(_ item: Item, toShopAt index: Int) {
+//        print("新しい商品作成: \(item)")
+//        shops[index].items.append(item)
+//        print("現在のお店の商品数: \(shops[index].items.count)")
+//        shops[index].isExpanded = true
+//        
+//        if let encoded = try? JSONEncoder().encode(shops) {
+//            UserDefaults.standard.set(encoded, forKey: "shops")
+//        }
+//        tableView.reloadData()
+//    }
     
     
     // セクションの数 = お店の数
@@ -174,35 +173,35 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return shops[section].items.count
     }
             
-            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-                guard let region = region as? CLCircularRegion else { return }
-
-                let shopName = region.identifier
-
-                // 対象のお店を探す
-                if let shop = shops.first(where: { $0.name == shopName }) {
-                    // チェックされてない（買ってない）商品があるか？
-                    let hasUncheckedItems = shop.items.contains(where: { !$0.isChecked })
-
-                    if hasUncheckedItems {
-                        // 通知を出す！
-                        let content = UNMutableNotificationContent()
-                        content.title = "\(shop.name)の近くです！"
-                        content.body = "まだ買ってない商品がありますよ"
-                        content.sound = .default
-
-                        let request = UNNotificationRequest(
-                            identifier: UUID().uuidString,
-                            content: content,
-                            trigger: nil
-                        )
-
-                        UNUserNotificationCenter.current().add(request)
-                    } else {
-                        print("\(shop.name)には買うものがなかったので通知なし！")
-                    }
-                }
-            }
+//            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+//                guard let region = region as? CLCircularRegion else { return }
+//
+//                let shopName = region.identifier
+//
+//                // 対象のお店を探す
+//                if let shop = shops.first(where: { $0.name == shopName }) {
+//                    // チェックされてない（買ってない）商品があるか？
+//                    let hasUncheckedItems = shop.items.contains(where: { !$0.isChecked })
+//
+//                    if hasUncheckedItems {
+//                        // 通知を出す！
+//                        let content = UNMutableNotificationContent()
+//                        content.title = "\(shop.name)の近くです！"
+//                        content.body = "まだ買ってない商品がありますよ"
+//                        content.sound = .default
+//
+//                        let request = UNNotificationRequest(
+//                            identifier: UUID().uuidString,
+//                            content: content,
+//                            trigger: nil
+//                        )
+//
+//                        UNUserNotificationCenter.current().add(request)
+//                    } else {
+//                        print("\(shop.name)には買うものがなかったので通知なし！")
+//                    }
+//                }
+//            }
         
     
     private func fetchGroupAndObserve() {
@@ -254,7 +253,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         headerView.addSubview(nameLabel)
         
         let toggleButton = UIButton(frame: CGRect(x: 0, y: 10, width: 70, height: 40))
-        toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
+//        toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
 //        toggleButton.setTitleColor(.systemBlue, for: .normal)
         toggleButton.tag = section
         toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
@@ -273,58 +272,58 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     @objc func toggleItems(_ sender: UIButton) {
         let section = sender.tag
-        shops[section].isExpanded.toggle()
+//        shops[section].isExpanded.toggle()
         tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
     
     @objc func detailButtonTapped(_ sender: UIButton) {
-        print("詳細ボタンが押された")
-        let section = sender.tag
-        let selectedShop = shops[section]
-        
-            let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
-
-            let selectedItem = shops[section].items[indexPath.row]  // -1はShopCellがrow 0のとき用
-        
-    
-       
-        print("選ばれたお店名: \(selectedShop.name)")
-        print("商品数: \(selectedShop.items.count)")
-        
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
-            itemListVC.item = selectedItem
-            itemListVC.selectedShopIndex = section
-            itemListVC.selectedShopIndex = indexPath.section
-            itemListVC.selectedItemIndex = indexPath.row
-            navigationController?.pushViewController(itemListVC, animated: true)
-        } else {
-            print("ItemListViewControllerが見つかりません")
-        }
+//        print("詳細ボタンが押された")
+//        let section = sender.tag
+//        let selectedShop = shops[section]
+//        
+//            let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
+//
+//            let selectedItem = shops[section].items[indexPath.row]  // -1はShopCellがrow 0のとき用
+//        
+//    
+//       
+//        print("選ばれたお店名: \(selectedShop.name)")
+//        print("商品数: \(selectedShop.items.count)")
+//        
+//        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+//        if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
+//            itemListVC.item = selectedItem
+//            itemListVC.selectedShopIndex = section
+//            itemListVC.selectedShopIndex = indexPath.section
+//            itemListVC.selectedItemIndex = indexPath.row
+//            navigationController?.pushViewController(itemListVC, animated: true)
+//        } else {
+//            print("ItemListViewControllerが見つかりません")
+//        }
     }
     
     
     
-    func saveCheckStates() {
-        var checkStates: [[Bool]] = []
-        for shop in shops {
-            let itemStates = shop.items.map { $0.isChecked }
-            checkStates.append(itemStates)
-        }
-        UserDefaults.standard.set(checkStates, forKey: "CheckStates")
-    }
-    
-    func loadCheckStates() {
-        if let saveStates = UserDefaults.standard.array(forKey: "CheckStates") as? [[Bool]] {
-            for (shopIndex, itemStates) in saveStates.enumerated() {
-                if shopIndex < shops.count {
-                    for (itemIndex, state) in itemStates.enumerated() {
-                        shops[shopIndex].items[itemIndex].isChecked = state
-                    }
-                }
-            }
-        }
-    }
+//    func saveCheckStates() {
+//        var checkStates: [[Bool]] = []
+//        for shop in shops {
+//            let itemStates = shop.items.map { $0.isChecked }
+//            checkStates.append(itemStates)
+//        }
+//        UserDefaults.standard.set(checkStates, forKey: "CheckStates")
+//    }
+//    
+//    func loadCheckStates() {
+//        if let saveStates = UserDefaults.standard.array(forKey: "CheckStates") as? [[Bool]] {
+//            for (shopIndex, itemStates) in saveStates.enumerated() {
+//                if shopIndex < shops.count {
+//                    for (itemIndex, state) in itemStates.enumerated() {
+//                        shops[shopIndex].items[itemIndex].isChecked = state
+//                    }
+//                }
+//            }
+//        }
+//    }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
@@ -332,9 +331,9 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 shops[indexPath.section].items.remove(at: indexPath.row)
                 
                 // ② UserDefaults に保存し直す
-                if let encoded = try? JSONEncoder().encode(shops) {
-                    UserDefaults.standard.set(encoded, forKey: "shops")
-                }
+//                if let encoded = try? JSONEncoder().encode(shops) {
+//                    UserDefaults.standard.set(encoded, forKey: "shops")
+//                }
                 
                 // ③ テーブルから行を削除
                 tableView.deleteRows(at: [indexPath], with: .automatic)
@@ -346,11 +345,11 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 }
     
    
-extension ShopListViewController: ShopAddViewControllerDelegate {
-    func didAddShop(name: String, latitude: Double, longitude: Double) {
-        let newShop = Shop(name: name, latitude: latitude, longitude: longitude, items: [], isExpanded: true)
-        shops.append(newShop)
-        tableView.reloadData()
-    }
-}
+//extension ShopListViewController: ShopAddViewControllerDelegate {
+//    func didAddShop(name: String, latitude: Double, longitude: Double) {
+//        let newShop = Shop(name: name, latitude: latitude, longitude: longitude, items: [], isExpanded: true)
+//        shops.append(newShop)
+//        tableView.reloadData()
+//    }
+//}
 
