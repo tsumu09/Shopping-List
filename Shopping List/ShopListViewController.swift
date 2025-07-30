@@ -171,8 +171,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     // 各セクションに表示する商品の数（isExpandedで制御）
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let shop = shops[section]
-        return shops[section].isExpanded ?  +shops[section].items.count : 0
+        return shops[section].items.count
     }
             
             func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -189,7 +188,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                         // 通知を出す！
                         let content = UNMutableNotificationContent()
                         content.title = "\(shop.name)の近くです！"
-                        content.body = "まだ買ってない商品がありますよ🛒"
+                        content.body = "まだ買ってない商品がありますよ"
                         content.sound = .default
 
                         let request = UNNotificationRequest(
@@ -207,88 +206,43 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         
     
     private func fetchGroupAndObserve() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("users")
-            .document(uid)
-            .getDocument { [weak self] snap, _ in
-                guard let self = self,
-                      let data = snap?.data(),
-                      let gid = data["groupId"] as? String else { return }
-                
-                self.groupId = gid
-                self.expandedSections = Set(0..<self.shops.count)
-                
-                db.collection("groups")
-                    .document(gid)
-                    .getDocument { groupSnap, _ in
-                        if let gdata = groupSnap?.data(),
-                           let groupName = gdata["name"] as? String {
-                            DispatchQueue.main.async {
-                                self.familyLabel.text = "\(groupName)のお買い物リスト"
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            let db = Firestore.firestore()
+            
+            // まずユーザー情報から groupId を取得
+            db.collection("users")
+                .document(uid)
+                .getDocument { [weak self] snap, _ in
+                    guard let self = self,
+                          let data = snap?.data(),
+                          let gid = data["groupId"] as? String else { return }
+                    
+                    self.groupId = gid
+                    self.expandedSections = Set(0..<self.shops.count) // 初回ロード時は全セクション展開しておく
+                    // → グループ名も取得してタイトル更新
+                    db.collection("groups")
+                        .document(gid)
+                        .getDocument { groupSnap, _ in
+                            if let gdata = groupSnap?.data(),
+                               let groupName = gdata["name"] as? String {
+                                DispatchQueue.main.async {
+                                    self.familyLabel.text = "\(groupName)のお買い物リスト"
+                                }
                             }
                         }
-                    }
-                
-                //  ここでリアルタイム監視開始！
-                db.collection("groups")
-                  .document(gid)
-                  .collection("shops")
-                  .addSnapshotListener { [weak self] snapshot, error in
-                    guard let self = self,
-                          let documents = snapshot?.documents else { return }
-
-                    var loadedShops: [Shop] = []
                     
-                    let group = DispatchGroup()
-                    
-                    for doc in documents {
-                        let data = doc.data()
-                        let shopId = doc.documentID
-                        let name = data["name"] as? String ?? ""
-                        let latitude = data["latitude"] as? Double ?? 0.0
-                        let longitude = data["longitude"] as? Double ?? 0.0
-                        
-                        var shop = Shop(name: name, latitude: latitude, longitude: longitude, items: [], isExpanded: true)
-                        
-                        group.enter()
-                        db.collection("groups")
-                          .document(gid)
-                          .collection("shops")
-                          .document(shopId)
-                          .collection("items")
-                          .addSnapshotListener { itemSnap, _ in
-                              guard let itemDocs = itemSnap?.documents else {
-                                  group.leave()
-                                  return
-                              }
-
-                              shop.items = itemDocs.compactMap { itemDoc in
-                                  let itemData = itemDoc.data()
-                                  return Item(
-                                      name: itemData["name"] as? String ?? "",
-                                      price: itemData["price"] as? Int ?? 0,
-                                      deadline: (itemData["deadline"] as? Timestamp)?.dateValue() ?? Date(),
-                                      detail: itemData["detail"] as? String ?? "",
-                                      importance: itemData["importance"] as? Int ?? 0,
-                                      isChecked: itemData["isChecked"] as? Bool ?? false
-                                  )
-                              }
-                              
-
-                              loadedShops.append(shop)
-                              group.leave()
-                          }
-                    }
-                    
-                    group.notify(queue: .main) {
-                        self.shops = loadedShops
-                        self.tableView.reloadData()
-                    }
+                    // 既存のリスナー解除＆再登録
+                    self.listener?.remove()
+                    self.listener = FirestoreManager.shared
+                        .observeShops(in: gid) { shops in
+                            self.shops = shops
+                            // shops の数が変わったら全展開または必要に応じてリセット
+                            self.expandedSections = Set(0..<shops.count)
+                            self.tableView.reloadData()
+                        }
                 }
-            }
-    }
+        }
+
 
     //セクションヘッダーの表示（お店の名前＋ボタン）
    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {

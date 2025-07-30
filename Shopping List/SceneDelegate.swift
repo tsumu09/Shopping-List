@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -17,6 +19,50 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
+        
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+                window = UIWindow(windowScene: windowScene)
+                let sb = UIStoryboard(name: "Main", bundle: nil)
+
+        if Auth.auth().currentUser == nil {
+                    // 未ログイン → OnboardingNav を root にして即表示
+                    let onboardingNav = sb.instantiateViewController(identifier: "OnboardingNav")
+                    window?.rootViewController = onboardingNav
+                    window?.makeKeyAndVisible()
+                    print("未ログイン: OnboardingNav を表示")
+                } else {
+                    // ログイン済み → グループ所属チェック
+                    print("ログイン済み: 所属チェック開始")
+                    
+                    // まず読込中画面 or OnboardingNav を出しておくと UX◎
+                    let loadingNav = sb.instantiateViewController(identifier: "OnboardingNav")
+                    window?.rootViewController = loadingNav
+                    window?.makeKeyAndVisible()
+                    
+                    let uid = Auth.auth().currentUser!.uid
+                    Firestore.firestore()
+                        .collection("users").document(uid)
+                        .getDocument { [weak self] snap, err in
+                            guard let self = self else { return }
+                            DispatchQueue.main.async {
+                                if let data = snap?.data(),
+                                   let groupId = data["groupId"] as? String,
+                                   !groupId.isEmpty {
+                                    // 所属あり → HomeTab
+                                    let homeTab = sb.instantiateViewController(identifier: "HomeTab")
+                                    self.window?.rootViewController = homeTab
+                                    print("所属あり: HomeTab を表示")
+                                } else {
+                                    // 所属なし → OnboardingNav に push で GroupJoinCreateVC
+                                    let groupNav = sb.instantiateViewController(identifier: "GroupNav")
+                                    self.window?.rootViewController = groupNav
+                                    print("所属なし: GroupNav を表示")
+
+                                }
+                            }
+                        }
+                }
+
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
