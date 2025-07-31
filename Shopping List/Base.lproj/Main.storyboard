@@ -10,6 +10,46 @@
     </dependencies>
     <scenes>
         <!--Item-->
+        <scene sceneID="wYb-Qc-KlY">
+            <objects>
+                <viewController storyboardIdentifier="CreateGroupCodeViewController" id="zpg-Xw-5HU" customClass="CreateGroupCodeViewController" customModule="Shopping_List" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="eeS-F6-5f5">
+                        <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="N9x-W9-ZVu">
+                                <rect key="frame" x="35" y="190" width="339" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="30"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Uyh-Qk-3Dj">
+                                <rect key="frame" x="155" y="416" width="81" height="50"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="生成">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="30"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="generateTapped:" destination="zpg-Xw-5HU" eventType="touchUpInside" id="RoY-aX-z1l"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="bZM-YU-zHD"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Item" id="st6-7N-K7r"/>
+                    <connections>
+                        <outlet property="codeLabel" destination="N9x-W9-ZVu" id="ZeM-X2-p0H"/>
+                        <outlet property="generateButton" destination="Uyh-Qk-3Dj" id="pGn-S4-O1H"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="h8b-Zs-H3y" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-943.07692307692309" y="1501.4218009478673"/>
+        </scene>
+        <!--Item-->
         <scene sceneID="vGe-ly-X4y">
             <objects>
                 <viewController id="LuV-Oo-6QF" sceneMemberID="viewController">
@@ -23,7 +63,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="B9j-Q4-OWb" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-942" y="746"/>
+            <point key="canvasLocation" x="-942" y="759"/>
         </scene>
         <!--Item-->
         <scene sceneID="i9m-fP-7PP">
@@ -101,6 +141,7 @@
                                 </buttonConfiguration>
                                 <connections>
                                     <action selector="createGroupButtonTapped:" destination="rvx-l7-5aW" eventType="touchUpInside" id="oak-oP-PP6"/>
+                                    <segue destination="rW1-Km-RwB" kind="show" id="8Xj-cg-0ar"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7KG-HM-7Mi">
@@ -110,6 +151,9 @@
                                 <buttonConfiguration key="configuration" style="plain" title="グループ参加">
                                     <fontDescription key="titleFontDescription" type="system" pointSize="40"/>
                                 </buttonConfiguration>
+                                <connections>
+                                    <segue destination="Zj3-9x-sdC" kind="show" id="ImN-hl-mud"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bmd-0j-hoz">
                                 <rect key="frame" x="100" y="634" width="193" height="38"/>
@@ -129,10 +173,10 @@
             </objects>
             <point key="canvasLocation" x="40" y="-717.29857819905214"/>
         </scene>
-        <!--View Controller-->
+        <!--Join Group View Controller-->
         <scene sceneID="Y6g-Xc-BVY">
             <objects>
-                <viewController id="Zj3-9x-sdC" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="JoinGroupViewController" id="Zj3-9x-sdC" customClass="JoinGroupViewController" customModule="Shopping_List" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="lDT-CV-TgX">
                         <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -157,16 +201,23 @@
                                 <buttonConfiguration key="configuration" style="plain" title="参加">
                                     <fontDescription key="titleFontDescription" type="system" pointSize="40"/>
                                 </buttonConfiguration>
+                                <connections>
+                                    <action selector="joinTapped:" destination="Zj3-9x-sdC" eventType="touchUpInside" id="kEW-4H-Vpy"/>
+                                </connections>
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="a54-A8-glG"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
                     <navigationItem key="navigationItem" id="RXn-Ut-1DW"/>
+                    <connections>
+                        <outlet property="codeField" destination="sm2-hZ-krP" id="AXe-eL-sTl"/>
+                        <outlet property="joinButton" destination="e90-aw-TXw" id="VmL-C4-9Gb"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="qef-SQ-LDg" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="3638.4615384615381" y="-717.29857819905214"/>
+            <point key="canvasLocation" x="834" y="-648"/>
         </scene>
         <!--View Controller-->
         <scene sceneID="9F2-Em-ZN2">
@@ -200,7 +251,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="PH1-yK-sJP" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4550.7692307692305" y="-717.29857819905214"/>
+            <point key="canvasLocation" x="2152" y="-648"/>
         </scene>
         <!--Create View Controller-->
         <scene sceneID="FDy-Yi-BFP">
@@ -253,7 +304,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="9wA-Y2-jwu" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="876.92307692307691" y="-717.29857819905214"/>
+            <point key="canvasLocation" x="834" y="-1332"/>
         </scene>
         <!--Shop Add View Controller-->
         <scene sceneID="wTq-1R-SGS">
@@ -889,6 +940,7 @@
                     <connections>
                         <segue destination="DzO-qs-NMf" kind="relationship" relationship="viewControllers" id="mPT-wN-ij4"/>
                         <segue destination="LuV-Oo-6QF" kind="relationship" relationship="viewControllers" id="aSE-KM-vfI"/>
+                        <segue destination="zpg-Xw-5HU" kind="relationship" relationship="viewControllers" id="vO0-PI-6bU"/>
                     </connections>
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="u7J-BM-T6v" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

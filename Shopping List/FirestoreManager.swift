@@ -189,6 +189,91 @@ final class FirestoreManager {
             }
         }
     
+    // MARK: ランダム英数字コードを生成し、group/{groupId}/invites/{code} ドキュメントに
+        // expiresAt (有効期限) をセットする
+        func generateInviteCode(
+            for groupId: String,
+            validFor minutes: Int = 10,
+            completion: @escaping (Result<String, Error>) -> Void
+        ) {
+            let code = randomString(length: 6)
+            let expiresAt = Timestamp(date: Date().addingTimeInterval(TimeInterval(minutes * 60)))
+            let inviteRef = db.collection("invites").document(code)
+            let data: [String: Any] = [
+                "groupId": groupId,
+                "expiresAt": expiresAt
+            ]
+            inviteRef.setData(data) { error in
+                if let e = error { completion(.failure(e)) }
+                else           { completion(.success(code)) }
+            }
+        }
+        
+        
+        // 英数字ランダム生成ヘルパー
+        private func randomString(length: Int) -> String {
+            let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+            return String((0..<length).map { _ in chars.randomElement()! })
+        }
+        
+        // MARK: — グループ参加
+        func joinGroup(groupId: String, completion: @escaping (Error?) -> Void) {
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            let memberRef = db
+                .collection("groups").document(groupId)
+                .collection("members").document(uid)
+            memberRef.setData(["joinedAt": Timestamp(), "displayName": Auth.auth().currentUser?.displayName ?? ""]) { error in
+                completion(error)
+            }
+        }
+        
+        // MARK: 招待コードから groupId を探して参加・ユーザードキュメントも更新する
+        func joinGroup(withInviteCode code: String,
+                       completion: @escaping (Result<String, Error>) -> Void) {
+            let ref = db.collection("invites").document(code)
+            ref.getDocument { snap, error in
+                if let e = error { return completion(.failure(e)) }
+                guard let data = snap?.data(),
+                      let groupId = data["groupId"] as? String,
+                      let expiresAt = data["expiresAt"] as? Timestamp
+                else {
+                    return completion(.failure(
+                        NSError(domain:"", code:0,
+                                userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
+                    ))
+                }
+                // 期限チェック
+                if expiresAt.dateValue() < Date() {
+                    return completion(.failure(
+                        NSError(domain:"", code:0,
+                                userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
+                    ))
+                }
+                // メンバー登録 & users.groupId 更新
+                self.joinGroup(groupId: groupId) { joinErr in
+                    if let joinErr = joinErr {
+                        return completion(.failure(joinErr))
+                    }
+                    guard let uid = Auth.auth().currentUser?.uid else {
+                        return completion(.failure(
+                            NSError(domain:"", code:0,
+                                    userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
+                        ))
+                    }
+                    self.db.collection("users")
+                        .document(uid)
+                        .updateData(["groupId": groupId]) { updErr in
+                            if let updErr = updErr {
+                                completion(.failure(updErr))
+                            } else {
+                                completion(.success(groupId))
+                            }
+                        }
+                }
+            }
+        }
+
+    
 }
 
 // ユーザーモデル
