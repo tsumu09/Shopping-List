@@ -15,8 +15,8 @@ class GroupViewController: UIViewController {
     @IBAction func createGroupButtonTapped(_ sender: UIButton) {
         print("グループ作成ボタンが押されました")
             let storyboard = UIStoryboard(name: "Main", bundle: nil)
-            if let createVC = storyboard.instantiateViewController(withIdentifier: "CreateViewController") as? CreateViewController {
-                navigationController?.pushViewController(createVC, animated: true)
+            if let CreateGroupVC = storyboard.instantiateViewController(withIdentifier: "CreateGroupViewController") as? CreateGroupViewController {
+                navigationController?.pushViewController(CreateGroupVC, animated: true)
             }
         }
 }

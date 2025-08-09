@@ -99,7 +99,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             }
             let item = shops[indexPath.section].items[indexPath.row]
             print("商品を表示中: \(item.name)")
-//            cell.nameLabel.text = item.name
+            cell.nameLabel.text = item.name
             cell.detailLabel?.text = item.detail
             cell.deadlineLabel?.text = formatDate(item.deadline)
             cell.importance = item.importance

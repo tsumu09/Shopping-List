@@ -10,7 +10,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 
-class CreateViewController: UIViewController {
+class CreateGroupViewController: UIViewController {
     
     var onGroupCreated: (() -> Void)?
 
@@ -54,8 +54,6 @@ class CreateViewController: UIViewController {
             case .failure(let error):
                 self.presentAlert(title: "作成失敗", message: error.localizedDescription)
             case .success(let groupId):
-                //ユーザードキュメントに groupId を保存
-
                 guard let uid = Auth.auth().currentUser?.uid else {return}
                 Firestore.firestore()
                     .collection("users")
@@ -64,16 +62,30 @@ class CreateViewController: UIViewController {
                         if let error = error {
                             self.presentAlert(title: "エラー", message: error.localizedDescription)
                         } else {
-                            //ホーム画面へ
-                            let storyboard = UIStoryboard(name: "Main", bundle: nil)
-                            if let shopListVC = storyboard.instantiateViewController(withIdentifier: "ShopListViewController") as? ShopListViewController {
-                                self.navigationController?.pushViewController(shopListVC, animated: true)
-                            }
-
+                            // switchRootを用いてホーム画面へ
+                            self.switchRoot(to: "HomeTab")
                         }
                     }
             }
         }
     }
     
+}
+extension UIViewController {
+    func switchRoot(to storyboardID: String, storyboardName: String = "Main") {
+        let storyboard = UIStoryboard(name: storyboardName, bundle: nil)
+        let vc = storyboard.instantiateViewController(withIdentifier: storyboardID)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let sceneDelegate = windowScene.delegate as? SceneDelegate,
+           let window = sceneDelegate.window {
+            
+            window.rootViewController = vc
+            UIView.transition(with: window,
+                              duration: 0.3,
+                              options: .transitionCrossDissolve,
+                              animations: nil,
+                              completion: nil)
+        }
+    }
 }

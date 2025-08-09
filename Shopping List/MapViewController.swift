@@ -76,7 +76,8 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
         }
         print("完了ボタンが押された！緯度: \(coordinate.latitude), 経度: \(coordinate.longitude)")
             delegate?.didSelectLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-            navigationController?.popViewController(animated: true)
+        dismiss(animated: true, completion: nil)
+
         
        
     }

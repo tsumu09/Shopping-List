@@ -30,7 +30,13 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     }
     
     @IBAction func selectLocationButtonTapped(_ sender: UIButton) {
-        
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let mapVC = storyboard.instantiateViewController(withIdentifier: "MapViewController") as! MapViewController
+        mapVC.delegate = self // 位置情報を受け取るため
+
+        // モーダル表示のスタイルを設定
+        mapVC.modalPresentationStyle = .pageSheet // or .pageSheet
+        present(mapVC, animated: true, completion: nil)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
