@@ -19,6 +19,7 @@ class ShopItemCell: UITableViewCell {
     @IBOutlet weak var priceLabel: UILabel!
     @IBOutlet weak var detailLabel: UILabel!
     @IBOutlet weak var deadlineLabel: UILabel!
+    @IBOutlet weak var priceTextField: UITextField!
     
     weak var delegate: ShopItemCellDelegate?
     var item: Item?
