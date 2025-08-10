@@ -7,6 +7,7 @@
 
 import UIKit
 import FirebaseFirestore
+import FirebaseAuth
 
 class TotalAmountViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
@@ -14,6 +15,7 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     var fetchedShopNames: [String] = []  // Firestoreから取得した全店名
     var shopName: [String] = []
     var shops: [Shop] = []
+    var groupId: String!
     
     let db = Firestore.firestore()
 
@@ -32,7 +34,21 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     }
 
     func fetchShopNames() {
-        db.collection("shops").getDocuments { [weak self] snapshot, error in
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        var groupId = ""
+        
+        Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .getDocument { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let data = snapshot?.data() {
+                    groupId = (data["groupId"] as? String)!
+                }
+            }
+        db.collection("groups").document(groupId).collection("shops").getDocuments { [weak self] snapshot, error in
             if let error = error {
                 print("Failed to fetch shops: \(error)")
                 return
