@@ -105,7 +105,7 @@ class ItemListViewController: UIViewController {
 
         // 更新
         shops[shopIndex].items[itemIndex].name = name
-        shops[shopIndex].items[itemIndex].price = price
+        shops[shopIndex].items[itemIndex].price = Double(price)
         shops[shopIndex].items[itemIndex].detail = detail
         shops[shopIndex].items[itemIndex].deadline = deadline
         shops[shopIndex].items[itemIndex].importance = importance

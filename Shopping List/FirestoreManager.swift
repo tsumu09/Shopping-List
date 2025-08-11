@@ -211,7 +211,7 @@ final class FirestoreManager {
                                     importance: i["importance"] as? Int ?? 0,
                                     deadline: i["deadline"] as? Date ?? Date(),
                                     detail: i["detail"] as? String ?? "",
-                                    price: i["price"] as? Int ?? 0,
+                                    price: i["price"] as? Double ?? 0,
                                     id: i.documentID,
                                     requestedBy: i["deadline"] as? String ?? ""
                                 )
@@ -226,6 +226,36 @@ final class FirestoreManager {
                 }
             }
         }
+    
+    func observeItems(in groupId: String, shopId: String, onUpdate: @escaping ([Item]) -> Void) -> ListenerRegistration {
+        let itemsRef = db
+            .collection("groups").document(groupId)
+            .collection("shops").document(shopId)
+            .collection("items")
+            .order(by: "importance", descending: true)  // 並び順も指定できる
+
+        return itemsRef.addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else {
+                print("itemsの取得失敗 or なし")
+                onUpdate([])
+                return
+            }
+
+            let items = docs.compactMap { d -> Item? in
+                return Item(
+                    name: d["name"] as? String ?? "",
+                    importance: d["importance"] as? Int ?? 0,
+                    deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
+                    detail: d["detail"] as? String ?? "",
+                    price: Double(Int(d["price"] as? Double ?? 0)),
+                    id: d.documentID,
+                    requestedBy: d["requestedBy"] as? String ?? ""
+                )
+            }
+            onUpdate(items)
+        }
+    }
+
     
     // MARK: ランダム英数字コードを生成し、group/{groupId}/invites/{code} ドキュメントに
         // expiresAt (有効期限) をセットする

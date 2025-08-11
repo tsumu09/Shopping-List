@@ -13,7 +13,7 @@ struct Item{
     var importance: Int
     var deadline: Date?
     var detail: String
-    var price: Int
+    var price: Double
     var id: String
     var requestedBy: String
     

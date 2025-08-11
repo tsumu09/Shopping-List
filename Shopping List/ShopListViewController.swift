@@ -168,7 +168,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             return
         }
         
-        totalVC.shopName = [shopName]  // shopNameが[String]型であることを確認
+        totalVC.shopName = shopName  // shopNameが[String]型であることを確認
         
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let sceneDelegate = windowScene.delegate as? SceneDelegate,
@@ -200,8 +200,13 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     // 各セクションに表示する商品の数（isExpandedで制御）
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return shops[section].items.count
+        if shops[section].isExpanded {
+            return shops[section].items.count
+        } else {
+            return 0
+        }
     }
+
     
     //            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
     //                guard let region = region as? CLCircularRegion else { return }
@@ -283,28 +288,31 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         headerView.addSubview(nameLabel)
         
         let toggleButton = UIButton(frame: CGRect(x: 0, y: 10, width: 70, height: 40))
-                toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
-                toggleButton.setTitleColor(.systemBlue, for: .normal)
+        let imageName = shops[section].isExpanded ? "chevron.down" : "chevron.forward"
+        toggleButton.setImage(UIImage(systemName: imageName), for: .normal)
+        toggleButton.tintColor = .systemBlue
         toggleButton.tag = section
         toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
         headerView.addSubview(toggleButton)
         
         let addItemButton = UIButton(type: .system)
-        addItemButton.setTitle("＋", for: .normal)  // または setImage にしてアイコンにもできる！
+        addItemButton.setTitle("＋", for: .normal)
         addItemButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
         addItemButton.frame = CGRect(x: tableView.frame.width - 60, y: 10, width: 40, height: 40)
-        addItemButton.tag = section  // どのセクションかを記録！
+        addItemButton.tag = section
         addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
         headerView.addSubview(addItemButton)
         
         return headerView
     }
+
     
     @objc func toggleItems(_ sender: UIButton) {
         let section = sender.tag
-        //        shops[section].isExpanded.toggle()
+        shops[section].isExpanded.toggle()
         tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
+
     
     @objc func detailButtonTapped(_ sender: DetailButton) {
         print("詳細ボタンが押された")
@@ -355,22 +363,33 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            // ① モデル（shops配列）からアイテムを削除
-            shops[indexPath.section].items.remove(at: indexPath.row)
-            
-            // ② UserDefaults に保存し直す
-            //                if let encoded = try? JSONEncoder().encode(shops) {
-            //                    UserDefaults.standard.set(encoded, forKey: "shops")
-            //                }
-            
-            // ③ テーブルから行を削除
-            tableView.deleteRows(at: [indexPath], with: .automatic)
+            let shop = shops[indexPath.section]
+            let item = shop.items[indexPath.row]
+
+            guard let groupId = self.groupId else {
+                print("groupId が nil です")
+                return
+            }
+
+            Firestore.firestore()
+                .collection("groups").document(groupId)
+                .collection("shops").document(shop.id)
+                .collection("items").document(item.id)
+                .delete { error in
+                    if let error = error {
+                        print("Firestore 削除失敗: \(error)")
+                    } else {
+                        print("Firestore 削除成功")
+                        // ローカルからも削除
+                        self.shops[indexPath.section].items.remove(at: indexPath.row)
+                        tableView.deleteRows(at: [indexPath], with: .automatic)
+                    }
+                }
+        }
+
         }
         
     }
-    
-    
-}
 
 
 

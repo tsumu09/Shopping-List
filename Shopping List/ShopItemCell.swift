@@ -8,10 +8,11 @@
 import UIKit
 
 protocol ShopItemCellDelegate: AnyObject {
-    func didTapDetail(for item: Item)
+    func shopItemCell(_ cell: ShopItemCell, didUpdatePrice price: Double, section: Int, row: Int)
+    func didTapDetail(for item: Item)  
 }
 
-class ShopItemCell: UITableViewCell {
+class ShopItemCell: UITableViewCell, UITextFieldDelegate {
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var importanceLabel: UILabel!
     @IBOutlet weak var detailButton: DetailButton!
@@ -21,8 +22,11 @@ class ShopItemCell: UITableViewCell {
     @IBOutlet weak var deadlineLabel: UILabel!
     @IBOutlet weak var priceTextField: UITextField!
     
-    weak var delegate: ShopItemCellDelegate?
     var item: Item?
+    
+    weak var delegate: ShopItemCellDelegate?
+       var section: Int!
+       var row: Int!
     
     var isChecked: Bool = false {
         didSet {
@@ -36,6 +40,15 @@ class ShopItemCell: UITableViewCell {
 //        updateCheckButton()
 //    }
     
+    override func awakeFromNib() {
+           super.awakeFromNib()
+           priceTextField.delegate = self
+       }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+            let price = Double(priceTextField.text ?? "") ?? 0
+            delegate?.shopItemCell(self, didUpdatePrice: price, section: section, row: row)
+        }
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
         toggleCheckAction?()
