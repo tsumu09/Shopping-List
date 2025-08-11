@@ -69,29 +69,35 @@ final class FirestoreManager {
         }
     
     func addItem(to groupId: String,
-                     shopId: String,
-                     name: String,
-                     price: Double,
-                     importance: Int,
+                 shopId: String,
+                 name: String,
+                 price: Double,
+                 importance: Int,
                  detail: String,
-                     completion: @escaping (Error?) -> Void) {
-            guard let uid = Auth.auth().currentUser?.uid else { return }
-            let itemRef = db
-                .collection("groups").document(groupId)
-                .collection("shops").document(shopId)
-                .collection("items").document()
-            let data: [String: Any] = [
-                "name": name,
-                "price": price,
-                "importance": importance,
-                "requestedBy": uid,
-                "createdAt": Timestamp(),
-                "detail": detail
-            ]
-            itemRef.setData(data) { error in
-                completion(error)
-            }
+                 completion: @escaping (Error?) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let itemRef = db
+            .collection("groups").document(groupId)
+            .collection("shops").document(shopId)
+            .collection("items").document()
+        
+        let itemId = itemRef.documentID  // ← ここでIDを取得
+
+        let data: [String: Any] = [
+            "id": itemId,                  // ← ここにIDを含める
+            "name": name,
+            "price": price,
+            "importance": importance,
+            "requestedBy": uid,
+            "createdAt": Timestamp(),
+            "detail": detail
+        ]
+        itemRef.setData(data) { error in
+            completion(error)
         }
+    }
+
+    
 
 
     func updateItem(groupId: String, shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
@@ -102,11 +108,11 @@ final class FirestoreManager {
         }
 
         let db = Firestore.firestore()
-        
+
         let docRef = db.collection("groups").document(groupId)
                        .collection("shops").document(shop.id)
-                       .collection("items").document()
-        
+                       .collection("items").document(item.id) // ← ここ！
+
         let data: [String: Any] = [
             "name": item.name,
             "price": item.price,
@@ -114,7 +120,7 @@ final class FirestoreManager {
             "deadline": Timestamp(date: item.deadline!),
             "importance": item.importance
         ]
-        
+
         docRef.updateData(data) { error in
             if let error = error {
                 print("Firestore 更新エラー: \(error.localizedDescription)")
@@ -124,6 +130,7 @@ final class FirestoreManager {
             completion?(error)
         }
     }
+
 
 
     
