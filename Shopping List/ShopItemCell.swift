@@ -14,7 +14,7 @@ protocol ShopItemCellDelegate: AnyObject {
 class ShopItemCell: UITableViewCell {
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var importanceLabel: UILabel!
-    @IBOutlet weak var detailButton: UIButton!
+    @IBOutlet weak var detailButton: DetailButton!
     @IBOutlet weak var checkButton: UIButton!
     @IBOutlet weak var priceLabel: UILabel!
     @IBOutlet weak var detailLabel: UILabel!
@@ -73,4 +73,8 @@ class ShopItemCell: UITableViewCell {
             delegate?.didTapDetail(for: item)
         }
     }
+}
+
+class DetailButton: UIButton {
+    var rowNumber: Int = 0
 }

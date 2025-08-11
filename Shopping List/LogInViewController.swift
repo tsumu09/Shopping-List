@@ -41,6 +41,35 @@ class LogInViewController: UIViewController {
                 // グループ所属チェック、正しい画面への遷移
                 self.checkGroupMembership()
             }
+        
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
+            guard let self = self else { return }
+            if let error = error {
+                self.errorLabel.text = error.localizedDescription
+                return
+            }
+            guard let user = result?.user else {
+                self.errorLabel.text = "ユーザー情報が取得できませんでした。"
+                return
+            }
+            
+            // groupId取得処理を先に呼ぶ
+            self.fetchGroupIdAfterLogin { error in
+                if let error = error {
+                    print("groupId 取得失敗: \(error.localizedDescription)")
+                    // 失敗しても画面遷移したい場合はここで呼ぶ
+                    DispatchQueue.main.async {
+                        self.checkGroupMembership()
+                    }
+                } else {
+                    print("groupId 取得成功: \(SessionManager.shared.groupId ?? "")")
+                    DispatchQueue.main.async {
+                        self.checkGroupMembership()
+                    }
+                }
+            }
+        }
+
         }
     private func checkGroupMembership() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -54,14 +83,14 @@ class LogInViewController: UIViewController {
                 if let data = snapshot?.data(),
                    let groupId = data["groupId"] as? String,
                    !groupId.isEmpty {
-                    // グループ所属済 → HomeTab へ
+                    SessionManager.shared.groupId = groupId // ← ここでセットする
                     self.switchRoot(to: "HomeTab")
                 } else {
-                    // グループ未所属 → OnboardingNav に push
                     self.switchRoot(to: "GroupNav")
-                    }
                 }
             }
+    }
+
     
     
 private func switchRoot(to storyboardID: String) {
@@ -78,4 +107,33 @@ private func switchRoot(to storyboardID: String) {
         window.makeKeyAndVisible()
     }
 }
+    func fetchGroupIdAfterLogin(completion: @escaping (Error?) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            completion(NSError(domain: "AppError", code: 0, userInfo: [NSLocalizedDescriptionKey: "ログインしていません"]))
+            return
+        }
+        
+        let db = Firestore.firestore()
+        let userDocRef = db.collection("users").document(uid)
+        
+        userDocRef.getDocument { documentSnapshot, error in
+            if let error = error {
+                completion(error)
+                return
+            }
+            
+            guard let data = documentSnapshot?.data(),
+                  let groupId = data["groupId"] as? String else {
+                completion(NSError(domain: "AppError", code: 1, userInfo: [NSLocalizedDescriptionKey: "groupId が見つかりません"]))
+                return
+            }
+            
+            SessionManager.shared.groupId = groupId
+            print("groupId を取得・セットしました: \(groupId)")
+            completion(nil)
+        }
+    }
+
+    
+
 }

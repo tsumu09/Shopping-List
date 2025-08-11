@@ -72,6 +72,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         //            print("shopsデータが存在しません")
         //        }
         //        tableView.reloadData()
+        print("画面表示時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
+
         fetchGroupAndObserve()
         
     }
@@ -110,6 +112,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         //            }
         
         cell.detailButton.tag = indexPath.section
+        cell.detailButton.rowNumber = indexPath.row
         cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
         print("表示する商品名 : \(item.name)")
         return cell
@@ -303,13 +306,13 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
     
-    @objc func detailButtonTapped(_ sender: UIButton) {
+    @objc func detailButtonTapped(_ sender: DetailButton) {
         print("詳細ボタンが押された")
         let section = sender.tag
         let selectedShop = shops[section]
-
-        let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
-        let selectedItem = shops[section].items[indexPath.row]
+        let selectedRow = sender.rowNumber
+        
+        let selectedItem = shops[section].items[selectedRow]
 
         print("選ばれたお店名: \(selectedShop.name)")
         print("商品数: \(selectedShop.items.count)")
@@ -318,8 +321,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
             itemListVC.shops = self.shops
             itemListVC.item = selectedItem  // ← 商品データを渡す
-            itemListVC.selectedShopIndex = indexPath.section
-            itemListVC.selectedItemIndex = indexPath.row
+            itemListVC.selectedShopIndex = section
+            itemListVC.selectedItemIndex = selectedRow
             navigationController?.pushViewController(itemListVC, animated: true)
         } else {
             print("ItemListViewControllerが見つかりません")

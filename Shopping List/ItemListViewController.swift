@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 protocol ItemListViewControllerDelegate: AnyObject {
     func didUpdateItem(shopIndex: Int, itemIndex: Int, updatedItem: Item)
@@ -27,6 +29,7 @@ class ItemListViewController: UIViewController {
     var selectedShopIndex: Int?
     var selectedItemIndex: Int?
     var item: Item?
+    let db = Firestore.firestore()
     
     override func viewDidLoad() {
            super.viewDidLoad()
@@ -35,6 +38,8 @@ class ItemListViewController: UIViewController {
            if let item = item {
                nameTextField.text = item.name
                priceTextField.text = "\(item.price)"
+               print("ItemListViewController 表示時の groupId: \(SessionManager.shared.groupId ?? "nil or empty")")
+
            }
        }
     
@@ -107,17 +112,38 @@ class ItemListViewController: UIViewController {
 
         let updatedShop = shops[shopIndex]
            let updatedItem = shops[shopIndex].items[itemIndex]
-        FirestoreManager.shared.updateItem(shop: updatedShop, item: updatedItem) { error in
-               if error == nil {
-                   DispatchQueue.main.async {
-                       // 更新成功したら画面戻る
-                       self.navigationController?.popViewController(animated: true)
-                   }
-               } else {
-                   // エラー時の処理（アラート表示など）
-                   print(error)
-               }
-           }
+        print("保存時の groupId: \(SessionManager.shared.groupId ?? "nil or empty")")
+        
+//        guard let groupId = SessionManager.shared.groupId, !groupId.isEmpty else {
+//            print("Error: groupIdが未設定です。Firestore更新を中止します。")
+//            return
+//        }
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("users")
+            .document(uid)
+            .getDocument { [weak self] snapshot, error in
+                guard let self = self else { return }
+                if let data = snapshot?.data(),
+                    let gid = data["groupId"] as? String{
+                    FirestoreManager.shared.updateItem(
+                        groupId: gid,
+                        shop: updatedShop,
+                        item: updatedItem
+                    ) { error in
+                        if error == nil {
+                            DispatchQueue.main.async {
+                                self.navigationController?.popViewController(animated: true)
+                            }
+                        } else {
+                            print(error)
+                        }
+                }
+            }
+        
+       
+        }
+
         
         // 一つ前の画面に戻る
 //        navigationController?.popViewController(animated: true)

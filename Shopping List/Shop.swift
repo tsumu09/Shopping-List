@@ -14,7 +14,7 @@ struct Shop {
     var latitude: Double
     var longitude: Double
     var items: [Item] = []
-    
+    var isExpanded: Bool = false 
 
     init(id: String = UUID().uuidString, name: String, latitude: Double, longitude: Double, items: [Item]) {
         self.id = id

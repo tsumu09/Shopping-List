@@ -54,6 +54,9 @@ class CreateGroupViewController: UIViewController {
             case .failure(let error):
                 self.presentAlert(title: "作成失敗", message: error.localizedDescription)
             case .success(let groupId):
+                // まずSessionManagerにgroupIdをセット
+                SessionManager.shared.groupId = groupId
+                print("グループ作成時にセットした groupId: \(SessionManager.shared.groupId ?? "nil")")
                 guard let uid = Auth.auth().currentUser?.uid else {return}
                 Firestore.firestore()
                     .collection("users")
@@ -64,8 +67,11 @@ class CreateGroupViewController: UIViewController {
                         } else {
                             // switchRootを用いてホーム画面へ
                             self.switchRoot(to: "HomeTab")
+                            print("グループ作成後のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
+
                         }
                     }
+
             }
         }
     }

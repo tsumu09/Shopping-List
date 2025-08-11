@@ -94,16 +94,18 @@ final class FirestoreManager {
         }
 
 
-    func updateItem(shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
+    func updateItem(groupId: String, shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
+        guard !item.id.isEmpty else {
+            print("Error: item.id が空です。Firestore更新を中止します。")
+            completion?(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "item.id is empty"]))
+            return
+        }
+
         let db = Firestore.firestore()
-        
-        // 例: "groups/{groupId}/shops/{shopId}/items/{itemId}"のパスに合わせる
-        // groupIdは必要に応じて取得・管理してね
-        let groupId = "your_group_id"  // ここは適宜変える
         
         let docRef = db.collection("groups").document(groupId)
                        .collection("shops").document(shop.id)
-                       .collection("items").document(item.id)
+                       .collection("items").document()
         
         let data: [String: Any] = [
             "name": item.name,
@@ -122,6 +124,7 @@ final class FirestoreManager {
             completion?(error)
         }
     }
+
 
     
     /// グループ作成（トランザクションでグループ本体＋メンバー初期追加）
