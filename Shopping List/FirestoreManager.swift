@@ -94,7 +94,35 @@ final class FirestoreManager {
         }
 
 
-    
+    func updateItem(shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
+        let db = Firestore.firestore()
+        
+        // 例: "groups/{groupId}/shops/{shopId}/items/{itemId}"のパスに合わせる
+        // groupIdは必要に応じて取得・管理してね
+        let groupId = "your_group_id"  // ここは適宜変える
+        
+        let docRef = db.collection("groups").document(groupId)
+                       .collection("shops").document(shop.id)
+                       .collection("items").document(item.id)
+        
+        let data: [String: Any] = [
+            "name": item.name,
+            "price": item.price,
+            "detail": item.detail,
+            "deadline": Timestamp(date: item.deadline!),
+            "importance": item.importance
+        ]
+        
+        docRef.updateData(data) { error in
+            if let error = error {
+                print("Firestore 更新エラー: \(error.localizedDescription)")
+            } else {
+                print("Firestore 更新成功")
+            }
+            completion?(error)
+        }
+    }
+
     
     /// グループ作成（トランザクションでグループ本体＋メンバー初期追加）
     func createGroup(name: String, completion: @escaping (Result<String, Error>) -> Void) {

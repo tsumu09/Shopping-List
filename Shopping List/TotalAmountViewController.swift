@@ -46,30 +46,30 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
                 
                 if let data = snapshot?.data() {
                     groupId = (data["groupId"] as? String)!
-                }
+                    db.collection("groups").document(groupId).collection("shops").getDocuments { [weak self] snapshot, error in
+                        if let error = error {
+                            print("Failed to fetch shops: \(error)")
+                            return
+                        }
+                        guard let documents = snapshot?.documents else {
+                            print("No documents found")
+                            return
+                        }
+                        
+                        print("Fetched documents count: \(documents.count)")
+                        
+                        self?.fetchedShopNames = documents.compactMap { doc in
+                            let name = doc.data()["name"] as? String
+                            print("Shop name: \(name ?? "nil")")
+                            return name
+                        }
+                        
+                        DispatchQueue.main.async {
+                            self?.tableView.reloadData()
+                        }
+                    }}
             }
-        db.collection("groups").document(groupId).collection("shops").getDocuments { [weak self] snapshot, error in
-            if let error = error {
-                print("Failed to fetch shops: \(error)")
-                return
-            }
-            guard let documents = snapshot?.documents else {
-                print("No documents found")
-                return
-            }
-            
-            print("Fetched documents count: \(documents.count)")
-            
-            self?.fetchedShopNames = documents.compactMap { doc in
-                let name = doc.data()["name"] as? String
-                print("Shop name: \(name ?? "nil")")
-                return name
-            }
-            
-            DispatchQueue.main.async {
-                self?.tableView.reloadData()
-            }
-        }
+       
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {

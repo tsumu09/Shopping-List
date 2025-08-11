@@ -14,8 +14,8 @@
             filePath = "Shopping List/TotalAmountViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "50"
-            endingLineNumber = "50"
+            startingLineNumber = "71"
+            endingLineNumber = "71"
             landmarkName = "fetchShopNames()"
             landmarkType = "7">
          </BreakpointContent>
@@ -24,7 +24,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "C01D9CEB-C26B-4A37-A23C-2A049513F12F"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Shopping List/TotalAmountViewController.swift"
@@ -34,43 +34,13 @@
             endingLineNumber = "44"
             landmarkName = "fetchShopNames()"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "C01D9CEB-C26B-4A37-A23C-2A049513F12F - ed42d45c5075b60c"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "Shopping_List.TotalAmountViewController.fetchShopNames() -&gt; ()"
-                  moduleName = "Shopping List.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/takahashitsumugi/Desktop/Shopping%20List/Shopping%20List/TotalAmountViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "44"
-                  endingLineNumber = "44">
-               </Location>
-               <Location
-                  uuid = "C01D9CEB-C26B-4A37-A23C-2A049513F12F - 96677b0f892e4348"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #1 (Swift.Optional&lt;__C.FIRDocumentSnapshot&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in Shopping_List.TotalAmountViewController.fetchShopNames() -&gt; ()"
-                  moduleName = "Shopping List.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/takahashitsumugi/Desktop/Shopping%20List/Shopping%20List/TotalAmountViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "44"
-                  endingLineNumber = "44">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "BA7C3972-DCC0-4E43-873D-3C6798E2C0B7"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Shopping List/TotalAmountViewController.swift"

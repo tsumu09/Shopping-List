@@ -29,7 +29,6 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     weak var delegate: ItemAddViewControllerDelegate?
     
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.delegate = self
@@ -281,8 +280,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         headerView.addSubview(nameLabel)
         
         let toggleButton = UIButton(frame: CGRect(x: 0, y: 10, width: 70, height: 40))
-        //        toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
-        //        toggleButton.setTitleColor(.systemBlue, for: .normal)
+                toggleButton.setImage(UIImage(systemName: shops[section].isExpanded ? "chevron.down" : "chevron.forward"), for: .normal)
+                toggleButton.setTitleColor(.systemBlue, for: .normal)
         toggleButton.tag = section
         toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
         headerView.addSubview(toggleButton)
@@ -305,30 +304,28 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     @objc func detailButtonTapped(_ sender: UIButton) {
-        //        print("詳細ボタンが押された")
-        //        let section = sender.tag
-        //        let selectedShop = shops[section]
-        //
-        //            let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
-        //
-        //            let selectedItem = shops[section].items[indexPath.row]  // -1はShopCellがrow 0のとき用
-        //
-        //
-        //
-        //        print("選ばれたお店名: \(selectedShop.name)")
-        //        print("商品数: \(selectedShop.items.count)")
-        //
-        //        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        //        if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
-        //            itemListVC.item = selectedItem
-        //            itemListVC.selectedShopIndex = section
-        //            itemListVC.selectedShopIndex = indexPath.section
-        //            itemListVC.selectedItemIndex = indexPath.row
-        //            navigationController?.pushViewController(itemListVC, animated: true)
-        //        } else {
-        //            print("ItemListViewControllerが見つかりません")
-        //        }
+        print("詳細ボタンが押された")
+        let section = sender.tag
+        let selectedShop = shops[section]
+
+        let indexPath = IndexPath(row: sender.accessibilityValue.flatMap { Int($0) } ?? 0, section: section)
+        let selectedItem = shops[section].items[indexPath.row]
+
+        print("選ばれたお店名: \(selectedShop.name)")
+        print("商品数: \(selectedShop.items.count)")
+
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        if let itemListVC = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
+            itemListVC.shops = self.shops
+            itemListVC.item = selectedItem  // ← 商品データを渡す
+            itemListVC.selectedShopIndex = indexPath.section
+            itemListVC.selectedItemIndex = indexPath.row
+            navigationController?.pushViewController(itemListVC, animated: true)
+        } else {
+            print("ItemListViewControllerが見つかりません")
+        }
     }
+
     
     
     
@@ -372,6 +369,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
 }
 
+
+
+extension ShopListViewController: ItemListViewControllerDelegate {
+    func didUpdateItem(shopIndex: Int, itemIndex: Int, updatedItem: Item) {
+        shops[shopIndex].items[itemIndex] = updatedItem
+        tableView.reloadData()
+    }
+}
 
 //extension ShopListViewController: ShopAddViewControllerDelegate {
 //    func didAddShop(name: String, latitude: Double, longitude: Double) {
