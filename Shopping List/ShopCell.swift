@@ -10,7 +10,7 @@ import UIKit
 class ShopCell: UITableViewCell {
     @IBOutlet weak var shopNameLabel: UILabel!
     @IBOutlet weak var addItemButton: UIButton!
-    
+    @IBOutlet weak var totalPriceLabel: UILabel!
     
     
     override func awakeFromNib() {
