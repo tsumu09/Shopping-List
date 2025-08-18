@@ -365,7 +365,7 @@
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopCell"/>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="ShopItemCell" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ShopItemCell" rowHeight="65" id="3Gh-E2-Zew" customClass="ShopItemCell" customModule="Shopping_List" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="ShopListItemCell" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ShopListItemCell" rowHeight="65" id="3Gh-E2-Zew" customClass="ShopListItemCell" customModule="Shopping_List" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="94.666667938232422" width="402" height="65"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="3Gh-E2-Zew" id="syU-ti-Alh">
@@ -397,12 +397,6 @@
                                                         <action selector="checkButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="bNM-BA-5u3"/>
                                                     </connections>
                                                 </button>
-                                                <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="YrS-Ga-2qY">
-                                                    <rect key="frame" x="196" y="10" width="97" height="34"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                                    <textInputTraits key="textInputTraits"/>
-                                                </textField>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
@@ -410,7 +404,6 @@
                                             <outlet property="checkButton" destination="rWc-4S-X3W" id="NBh-A4-QEb"/>
                                             <outlet property="detailButton" destination="Lfz-gh-lyK" id="btO-ks-Nep"/>
                                             <outlet property="nameLabel" destination="USW-64-Wdk" id="KKl-Rx-9vn"/>
-                                            <outlet property="priceTextField" destination="YrS-Ga-2qY" id="HOh-FU-n2A"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>
@@ -750,7 +743,7 @@
                                             <outlet property="totalPriceLabel" destination="far-KE-gg4" id="loL-ZH-0nB"/>
                                         </connections>
                                     </tableViewCell>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="ShopItemCell" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ShopItemCell" rowHeight="57" id="B5L-LN-fw3" customClass="ShopItemCell" customModule="Shopping_List" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="TotalAmountItemCell" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="TotalAmountItemCell" rowHeight="57" id="B5L-LN-fw3" customClass="TotalAmountItemCell" customModule="Shopping_List" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="94.666667938232422" width="390" height="57"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="B5L-LN-fw3" id="kzN-WY-uLD">
@@ -774,8 +767,8 @@
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
                                         <connections>
-                                            <outlet property="nameLabel" destination="GNB-0o-MdW" id="pBU-u9-iDq"/>
-                                            <outlet property="priceTextField" destination="PCZ-Bx-f6O" id="Mvt-nG-8d3"/>
+                                            <outlet property="itemNameLabel" destination="GNB-0o-MdW" id="Gfm-P4-2NO"/>
+                                            <outlet property="priceTextField" destination="PCZ-Bx-f6O" id="1F3-vF-8jP"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>

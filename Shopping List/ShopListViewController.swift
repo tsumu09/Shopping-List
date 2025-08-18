@@ -95,7 +95,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopListItemCell", for: indexPath) as? ShopListItemCell else {
             return UITableViewCell()
         }
         let shop = shops[indexPath.section]
@@ -108,16 +108,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         cell.detailLabel?.text = item.detail
         cell.deadlineLabel?.text = formatDate(item.deadline)
         cell.importance = item.importance
-        cell.priceTextField.text = String(format: "%.2f", item.price)
+       
 
         // 🔹 delegate と位置情報を渡す
         cell.delegate = self
         cell.section = indexPath.section
         cell.row = indexPath.row
 
-        // 🔹 delegateはShopItemCellが自分のUITextFieldDelegateを担当
-        cell.priceTextField.delegate = cell
-
+        
         // ボタン関連
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
@@ -432,8 +430,8 @@ extension ShopListViewController: ItemListViewControllerDelegate {
     }
 }
 
-extension ShopListViewController: ShopItemCellDelegate {
-    func shopItemCell(_ cell: ShopItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
+extension ShopListViewController: ShopListItemCellDelegate {
+    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
         shops[section].items[row].price = price
 
         let groupId = self.groupId!

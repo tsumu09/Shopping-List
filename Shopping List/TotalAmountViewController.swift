@@ -119,13 +119,12 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             return cell
         } else {
             // 商品セル
-               let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as! ShopItemCell
+               let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountItemCell", for: indexPath) as! TotalAmountItemCell
                let item = shops[indexPath.section].items[indexPath.row - 1]
 
                cell.item = item
-               cell.nameLabel.text = item.name
+               cell.itemNameLabel.text = item.name
                cell.priceTextField.text = String(format: "%.2f", item.price)
-               cell.importance = item.importance
                cell.section = indexPath.section
                cell.row = indexPath.row - 1
                cell.delegate = self
@@ -133,15 +132,16 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
                // ここで delegate を設定
                cell.priceTextField.delegate = cell
 
+            cell.priceTextField.text = String(Int(item.price))
+            
                return cell
            }
        }
 }
 
-extension TotalAmountViewController: ShopItemCellDelegate {
-    func shopItemCell(_ cell: ShopItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
-        shops[section].items[row].price = price
-        
+extension TotalAmountViewController: TotalAmountItemCellDelegate {
+    func TotalAmountItemCell(_ cell: TotalAmountItemCell, section: Int, row: Int) {
+       
         // Firestoreに保存
         let shop = shops[section]
         let item = shops[section].items[row]

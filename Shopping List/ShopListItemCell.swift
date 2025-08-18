@@ -7,12 +7,12 @@
 
 import UIKit
 
-protocol ShopItemCellDelegate: AnyObject {
-    func shopItemCell(_ cell: ShopItemCell, didUpdatePrice price: Double, section: Int, row: Int)
-    func didTapDetail(for item: Item)  
+protocol ShopListItemCellDelegate: AnyObject {
+    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int)
+    func didTapDetail(for item: Item)
 }
 
-class ShopItemCell: UITableViewCell, UITextFieldDelegate {
+class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var importanceLabel: UILabel!
     @IBOutlet weak var detailButton: DetailButton!
@@ -20,11 +20,10 @@ class ShopItemCell: UITableViewCell, UITextFieldDelegate {
     @IBOutlet weak var priceLabel: UILabel!
     @IBOutlet weak var detailLabel: UILabel!
     @IBOutlet weak var deadlineLabel: UILabel!
-    @IBOutlet weak var priceTextField: UITextField!
     
     var item: Item?
     
-    weak var delegate: ShopItemCellDelegate?
+    weak var delegate: ShopListItemCellDelegate?
        var section: Int!
        var row: Int!
     
@@ -40,15 +39,7 @@ class ShopItemCell: UITableViewCell, UITextFieldDelegate {
 //        updateCheckButton()
 //    }
     
-    override func awakeFromNib() {
-           super.awakeFromNib()
-           priceTextField.delegate = self
-       }
-
-    func textFieldDidEndEditing(_ textField: UITextField) {
-            let price = Double(priceTextField.text ?? "") ?? 0
-            delegate?.shopItemCell(self, didUpdatePrice: price, section: section, row: row)
-        }
+   
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
         toggleCheckAction?()
