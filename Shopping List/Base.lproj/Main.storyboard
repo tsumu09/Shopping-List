@@ -397,6 +397,12 @@
                                                         <action selector="checkButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="bNM-BA-5u3"/>
                                                     </connections>
                                                 </button>
+                                                <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="YrS-Ga-2qY">
+                                                    <rect key="frame" x="196" y="10" width="97" height="34"/>
+                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                                    <textInputTraits key="textInputTraits"/>
+                                                </textField>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
@@ -404,6 +410,7 @@
                                             <outlet property="checkButton" destination="rWc-4S-X3W" id="NBh-A4-QEb"/>
                                             <outlet property="detailButton" destination="Lfz-gh-lyK" id="btO-ks-Nep"/>
                                             <outlet property="nameLabel" destination="USW-64-Wdk" id="KKl-Rx-9vn"/>
+                                            <outlet property="priceTextField" destination="YrS-Ga-2qY" id="HOh-FU-n2A"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>
@@ -729,9 +736,9 @@
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="ShopName" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Qjw-Q3-906">
-                                                    <rect key="frame" x="46" y="12" width="85" height="21"/>
+                                                    <rect key="frame" x="20" y="12" width="223" height="21"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="26"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
@@ -750,25 +757,25 @@
                                             <rect key="frame" x="0.0" y="0.0" width="390" height="57"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="ItemName" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GNB-0o-MdW">
-                                                    <rect key="frame" x="51" y="3" width="157" height="44"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="22"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
                                                 <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="PCZ-Bx-f6O">
                                                     <rect key="frame" x="273" y="8" width="97" height="34"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                                     <textInputTraits key="textInputTraits"/>
                                                 </textField>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="ItemName" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GNB-0o-MdW">
+                                                    <rect key="frame" x="30" y="-2" width="214" height="44"/>
+                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
                                         <connections>
                                             <outlet property="nameLabel" destination="GNB-0o-MdW" id="pBU-u9-iDq"/>
-                                            <outlet property="priceTextField" destination="PCZ-Bx-f6O" id="knO-8B-Rh5"/>
+                                            <outlet property="priceTextField" destination="PCZ-Bx-f6O" id="Mvt-nG-8d3"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>

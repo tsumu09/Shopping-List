@@ -14,7 +14,7 @@ import FirebaseFirestore
 let locationManager = CLLocationManager()
 
 class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
-    
+
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var familyLabel: UILabel!
     
@@ -26,6 +26,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var listener: ListenerRegistration?
     var shopId: String?
     var selectedShopIndex: Int?
+    var items: [Item] = []
     weak var delegate: ItemAddViewControllerDelegate?
     
     
@@ -93,30 +94,61 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return formatter.string(from: date)
     }
     
-    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else{
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as? ShopItemCell else {
             return UITableViewCell()
         }
-        let item = shops[indexPath.section].items[indexPath.row]
+        let shop = shops[indexPath.section]
+        let item = shop.items[indexPath.row]
+
         print("商品を表示中: \(item.name)")
+
+        cell.item = item
         cell.nameLabel.text = item.name
         cell.detailLabel?.text = item.detail
         cell.deadlineLabel?.text = formatDate(item.deadline)
         cell.importance = item.importance
-        
-        //            cell.toggleCheckAction = { [weak self] in
-        //                item.isChecked.toggle()
-        //                cell.isChecked = item.isChecked
-        //                self?.saveCheckStates()
-        //            }
-        
+        cell.priceTextField.text = String(format: "%.2f", item.price)
+
+        // 🔹 delegate と位置情報を渡す
+        cell.delegate = self
+        cell.section = indexPath.section
+        cell.row = indexPath.row
+
+        // 🔹 delegateはShopItemCellが自分のUITextFieldDelegateを担当
+        cell.priceTextField.delegate = cell
+
+        // ボタン関連
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
         cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
+
         print("表示する商品名 : \(item.name)")
         return cell
     }
+
+    
+    func fetchItems(for shop: Shop) {
+        let groupId = self.groupId!
+        Firestore.firestore()
+            .collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .document(shop.id)
+            .collection("items")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                if let error = error {
+                    print("商品取得失敗: \(error)")
+                    return
+                }
+                self.items = snapshot?.documents.compactMap { doc in
+                    try? doc.data(as: Item.self)
+                } ?? []
+                self.tableView.reloadData()
+            }
+    }
+
     
     @IBAction func addShopButtonTapped(_ sender: UIButton) {
         guard let gid = groupId else { return }
@@ -160,7 +192,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //        tableView.reloadData()
     //    }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let shopName = shops[indexPath.row].name  // Optionalじゃなければ guard let は不要
+        let shopName = shops[indexPath.section].name
         
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         guard let totalVC = storyboard.instantiateViewController(withIdentifier: "TotalAmountViewController") as? TotalAmountViewController else {
@@ -399,6 +431,37 @@ extension ShopListViewController: ItemListViewControllerDelegate {
         tableView.reloadData()
     }
 }
+
+extension ShopListViewController: ShopItemCellDelegate {
+    func shopItemCell(_ cell: ShopItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
+        shops[section].items[row].price = price
+
+        let groupId = self.groupId!
+        let shopId = shops[section].id
+        let item = shops[section].items[row]
+
+        let shop = shops[section]
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: item) { error in
+            if let error = error {
+                print("価格更新失敗: \(error)")
+            } else {
+                print("価格更新成功")
+            }
+        }
+
+
+        // 合計計算はしない
+        let indexSet = IndexSet(integer: section)
+        tableView.reloadSections(indexSet, with: .none)
+    }
+
+
+    
+    func didTapDetail(for item: Item) {
+        // 詳細画面遷移
+    }
+}
+
 
 //extension ShopListViewController: ShopAddViewControllerDelegate {
 //    func didAddShop(name: String, latitude: Double, longitude: Double) {

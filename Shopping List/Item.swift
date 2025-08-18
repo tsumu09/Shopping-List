@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct Item{
+struct Item: Codable, Identifiable{
     var name: String
     var importance: Int
     var deadline: Date?

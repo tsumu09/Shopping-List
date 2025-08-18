@@ -14,7 +14,11 @@ struct Shop {
     var latitude: Double
     var longitude: Double
     var items: [Item] = []
-    var isExpanded: Bool = false 
+    var isExpanded: Bool = false
+    
+    var totalPrice: Double {
+           return items.reduce(0) { $0 + $1.price }
+       }
 
     init(id: String = UUID().uuidString, name: String, latitude: Double, longitude: Double, items: [Item]) {
         self.id = id

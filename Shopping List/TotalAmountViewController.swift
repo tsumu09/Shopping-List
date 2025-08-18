@@ -9,7 +9,7 @@ import UIKit
 import FirebaseFirestore
 import FirebaseAuth
 
-class TotalAmountViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class TotalAmountViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate {
     
     var passedShopName: String?
     var fetchedShopNames: [String] = []
@@ -119,20 +119,23 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             return cell
         } else {
             // 商品セル
-            let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as! ShopItemCell
-            let item = shops[indexPath.section].items[indexPath.row - 1]
-            
-            cell.item = item
-            cell.nameLabel.text = item.name
-            cell.priceTextField.text = String(format: "%.2f", item.price)
-            cell.importance = item.importance
-            cell.section = indexPath.section
-            cell.row = indexPath.row - 1
-            cell.delegate = self
-            
-            return cell
-        }
-    }
+               let cell = tableView.dequeueReusableCell(withIdentifier: "ShopItemCell", for: indexPath) as! ShopItemCell
+               let item = shops[indexPath.section].items[indexPath.row - 1]
+
+               cell.item = item
+               cell.nameLabel.text = item.name
+               cell.priceTextField.text = String(format: "%.2f", item.price)
+               cell.importance = item.importance
+               cell.section = indexPath.section
+               cell.row = indexPath.row - 1
+               cell.delegate = self
+
+               // ここで delegate を設定
+               cell.priceTextField.delegate = cell
+
+               return cell
+           }
+       }
 }
 
 extension TotalAmountViewController: ShopItemCellDelegate {

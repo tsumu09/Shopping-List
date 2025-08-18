@@ -24,4 +24,9 @@ class ShopCell: UITableViewCell {
         // Configure the view for the selected state
     }
     
+    func configure(shop: Shop) {
+           shopNameLabel.text = shop.name
+           totalPriceLabel.text = "合計: \(Int(shop.totalPrice))円"
+       }
+    
 }
