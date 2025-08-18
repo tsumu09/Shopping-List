@@ -21,23 +21,63 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var saveDate: UserDefaults = UserDefaults.standard
     var shopName: [String] = []
     var shops: [Shop] = []
-    var groupId: String!
+    var groupId: String?
     var expandedSections: Set<Int> = []
     var listener: ListenerRegistration?
     var shopId: String?
     var selectedShopIndex: Int?
     var items: [Item] = []
     weak var delegate: ItemAddViewControllerDelegate?
+    var itemsListener: ListenerRegistration?
     
+    private func fetchGroupAndObserve() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        
+        // まずユーザー情報から groupId を取得
+        db.collection("users")
+            .document(uid)
+            .getDocument { [weak self] snap, _ in
+                guard let self = self,
+                      let data = snap?.data(),
+                      let gid = data["groupId"] as? String else { return }
+                
+                self.groupId = gid
+                SessionManager.shared.groupId = gid
+                self.expandedSections = Set(0..<self.shops.count) // 初回ロード時は全セクション展開しておく
+                // → グループ名も取得してタイトル更新
+                db.collection("groups")
+                    .document(gid)
+                    .getDocument { groupSnap, _ in
+                        if let gdata = groupSnap?.data(),
+                           let groupName = gdata["name"] as? String {
+                            DispatchQueue.main.async {
+                                self.familyLabel.text = "\(groupName)のお買い物リスト"
+                            }
+                        }
+                    }
+                
+                // 既存のリスナー解除＆再登録
+                self.listener?.remove()
+                self.listener = FirestoreManager.shared
+                    .observeShops(in: gid) { shops in
+                        self.shops = shops
+                        // shops の数が変わったら全展開または必要に応じてリセット
+                        self.expandedSections = Set(0..<shops.count)
+                        self.tableView.reloadData()
+                    }
+            }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.allowsSelection = false
         //        loadCheckStates()
         tableView.reloadData()
         fetchGroupAndObserve()
-        
+        print("画面初期化時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
         //        NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
         
         Shopping_List.locationManager.delegate = self
@@ -60,24 +100,29 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //            print("一覧に最新のshopsを反映したよ！")
     //        }
     //    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        //        if let data = UserDefaults.standard.data(forKey: "shops") {
-        //            if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
-        //                shops = decoded
-        //            } else {
-        //                print("デコードに失敗しました")
-        //            }
-        //        } else {
-        //            print("shopsデータが存在しません")
-        //        }
-        //        tableView.reloadData()
-        print("画面表示時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
-
-        fetchGroupAndObserve()
-        
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // 画面閉じるときに監視解除
+        itemsListener?.remove()
+        itemsListener = nil
     }
+//    override func viewWillAppear(_ animated: Bool) {
+//        super.viewWillAppear(animated)
+//        //        if let data = UserDefaults.standard.data(forKey: "shops") {
+//        //            if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+//        //                shops = decoded
+//        //            } else {
+//        //                print("デコードに失敗しました")
+//        //            }
+//        //        } else {
+//        //            print("shopsデータが存在しません")
+//        //        }
+//        //        tableView.reloadData()
+//        print("画面表示時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
+//
+//        fetchGroupAndObserve()
+//        
+//    }
     
     //    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
     //        if segue.identifier == "ToShopAddView",
@@ -104,19 +149,28 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         print("商品を表示中: \(item.name)")
 
         cell.item = item
+        cell.shopId = shop.id
+        cell.groupId = self.groupId
+        cell.isChecked = item.isChecked
+        
+        // 🔹 delegate と位置情報を渡す
+        cell.delegate = self
+        cell.section = indexPath.section
+        cell.row = indexPath.row
+        
         cell.nameLabel.text = item.name
         cell.detailLabel?.text = item.detail
         cell.deadlineLabel?.text = formatDate(item.deadline)
         cell.importance = item.importance
        
+       
 
-        // 🔹 delegate と位置情報を渡す
-        cell.delegate = self
-        cell.section = indexPath.section
-        cell.row = indexPath.row
-
+        // ボタン・ラベル関連
+        cell.nameLabel.text = item.name
+        cell.detailLabel?.text = item.detail
+        cell.deadlineLabel?.text = formatDate(item.deadline)
+        cell.importance = item.importance
         
-        // ボタン関連
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
         cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
@@ -127,24 +181,33 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     
     func fetchItems(for shop: Shop) {
-        let groupId = self.groupId!
+        guard let gid = SessionManager.shared.groupId else { return }
+        
         Firestore.firestore()
             .collection("groups")
-            .document(groupId)
+            .document(gid)
             .collection("shops")
             .document(shop.id)
             .collection("items")
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
-                if let error = error {
-                    print("商品取得失敗: \(error)")
-                    return
-                }
-                self.items = snapshot?.documents.compactMap { doc in
-                    try? doc.data(as: Item.self)
-                } ?? []
-                self.tableView.reloadData()
-            }
+                if let snapshot = snapshot {
+                                self.shops = self.shops.map { s in
+                                    if s.id == shop.id {
+                                        var updatedShop = s
+                                        updatedShop.items = snapshot.documents.map { doc in
+                                            Item.fromDictionary(doc.data(), id: doc.documentID)
+                                        }
+                                        return updatedShop
+                                    } else {
+                                        return s
+                                    }
+                                }
+                                DispatchQueue.main.async {
+                                    self.tableView.reloadData()
+                                }
+                            }
+                        }
     }
 
     
@@ -189,29 +252,30 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //        }
     //        tableView.reloadData()
     //    }
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let shopName = shops[indexPath.section].name
-        
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        guard let totalVC = storyboard.instantiateViewController(withIdentifier: "TotalAmountViewController") as? TotalAmountViewController else {
-            print("TotalAmountViewControllerのインスタンス化に失敗")
-            return
-        }
-        
-        totalVC.shopName = shopName  // shopNameが[String]型であることを確認
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let sceneDelegate = windowScene.delegate as? SceneDelegate,
-           let window = sceneDelegate.window {
-            
-            window.rootViewController = totalVC
-            UIView.transition(with: window,
-                              duration: 0.3,
-                              options: .transitionCrossDissolve,
-                              animations: nil,
-                              completion: nil)
-        }
-    }
+    
+//    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+//        let shopName = shops[indexPath.section].name
+//        
+//        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+//        guard let totalVC = storyboard.instantiateViewController(withIdentifier: "TotalAmountViewController") as? TotalAmountViewController else {
+//            print("TotalAmountViewControllerのインスタンス化に失敗")
+//            return
+//        }
+//        
+//        totalVC.shopName = shopName  // shopNameが[String]型であることを確認
+//        
+//        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+//           let sceneDelegate = windowScene.delegate as? SceneDelegate,
+//           let window = sceneDelegate.window {
+//            
+//            window.rootViewController = totalVC
+//            UIView.transition(with: window,
+//                              duration: 0.3,
+//                              options: .transitionCrossDissolve,
+//                              animations: nil,
+//                              completion: nil)
+//        }
+//    }
 
 
 
@@ -269,45 +333,20 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //            }
     
     
-    private func fetchGroupAndObserve() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
+    
+    
+    func shopListItemCell(_ cell: ShopListItemCell, didTapCheckButtonFor item: Item) {
+        // TotalAmountVC に渡す
+        NotificationCenter.default.post(
+            name: .didAddItemToTotalAmount,
+            object: nil,
+            userInfo: ["item": item]
+        )
         
-        // まずユーザー情報から groupId を取得
-        db.collection("users")
-            .document(uid)
-            .getDocument { [weak self] snap, _ in
-                guard let self = self,
-                      let data = snap?.data(),
-                      let gid = data["groupId"] as? String else { return }
-                
-                self.groupId = gid
-                self.expandedSections = Set(0..<self.shops.count) // 初回ロード時は全セクション展開しておく
-                // → グループ名も取得してタイトル更新
-                db.collection("groups")
-                    .document(gid)
-                    .getDocument { groupSnap, _ in
-                        if let gdata = groupSnap?.data(),
-                           let groupName = gdata["name"] as? String {
-                            DispatchQueue.main.async {
-                                self.familyLabel.text = "\(groupName)のお買い物リスト"
-                            }
-                        }
-                    }
-                
-                // 既存のリスナー解除＆再登録
-                self.listener?.remove()
-                self.listener = FirestoreManager.shared
-                    .observeShops(in: gid) { shops in
-                        self.shops = shops
-                        // shops の数が変わったら全展開または必要に応じてリセット
-                        self.expandedSections = Set(0..<shops.count)
-                        self.tableView.reloadData()
-                    }
-            }
+        // チェック済み状態にする（UIだけ）
+        cell.checkButton.isSelected = true
     }
-    
-    
+
     //セクションヘッダーの表示（お店の名前＋ボタン）
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = UIView()

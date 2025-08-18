@@ -174,6 +174,36 @@ final class FirestoreManager {
         }
     }
 
+    func fetchItem(shopId: String, itemId: String, completion: @escaping (Item?) -> Void) {
+            guard let groupId = SessionManager.shared.groupId else {
+                completion(nil)
+                return
+            }
+
+            db.collection("groups")
+                .document(groupId)
+                .collection("shops")
+                .document(shopId)
+                .collection("items")
+                .document(itemId)
+                .getDocument { snapshot, error in
+                    if let error = error {
+                        print("アイテム取得失敗: \(error)")
+                        completion(nil)
+                        return
+                    }
+
+                    guard let data = snapshot?.data() else {
+                        completion(nil)
+                        return
+                    }
+
+                    // Item を Firestore データから生成
+                    let item = Item.fromDictionary(data, id: itemId)
+                    completion(item)
+                }
+        }
+    
     func observeShops(in groupId: String,
                           onUpdate: @escaping ([Shop]) -> Void) -> ListenerRegistration {
             let shopsRef = db
@@ -207,12 +237,13 @@ final class FirestoreManager {
                         .getDocuments { itemsSnap, _ in
                             shop.items = itemsSnap?.documents.compactMap { i in
                                 Item(
-                                    name: i["name"] as? String ?? "",
-                                    importance: i["importance"] as? Int ?? 0,
-                                    deadline: i["deadline"] as? Date ?? Date(),
-                                    detail: i["detail"] as? String ?? "",
-                                    price: i["price"] as? Double ?? 0,
                                     id: i.documentID,
+                                    name: i["name"] as? String ?? "",
+                                    price: i["price"] as? Double ?? 0,
+                                    isChecked: i["isChecked"] as? Bool ?? false,
+                                    importance: i["importance"] as? Int ?? 0,
+                                    detail: i["detail"] as? String ?? "",
+                                    deadline: i["deadline"] as? Date ?? Date(),
                                     requestedBy: i["deadline"] as? String ?? ""
                                 )
                             } ?? []
@@ -243,12 +274,13 @@ final class FirestoreManager {
 
             let items = docs.compactMap { d -> Item? in
                 return Item(
-                    name: d["name"] as? String ?? "",
-                    importance: d["importance"] as? Int ?? 0,
-                    deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
-                    detail: d["detail"] as? String ?? "",
-                    price: Double(Int(d["price"] as? Double ?? 0)),
                     id: d.documentID,
+                    name: d["name"] as? String ?? "",
+                    price: Double(Int(d["price"] as? Double ?? 0)),
+                    isChecked: d["isChecked"] as? Bool ?? false,
+                    importance: d["importance"] as? Int ?? 0,
+                    detail: d["detail"] as? String ?? "",
+                    deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
                     requestedBy: d["requestedBy"] as? String ?? ""
                 )
             }

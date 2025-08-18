@@ -394,7 +394,7 @@
                                                     <state key="normal" title="Button"/>
                                                     <buttonConfiguration key="configuration" style="plain" image="circle" catalog="system"/>
                                                     <connections>
-                                                        <action selector="checkButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="bNM-BA-5u3"/>
+                                                        <action selector="checkButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="Vf9-gG-Wqh"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
