@@ -9,9 +9,11 @@ import UIKit
 import FirebaseFirestore
 
 protocol ShopListItemCellDelegate: AnyObject {
-    func shopListItemCell(_ cell: ShopListItemCell, didTapCheckButtonFor item: Item)
-    func didTapDetail(for item: Item)
+    func shopListItemCell(_ cell: ShopListItemCell, didToggleCheckAt section: Int, row: Int)
+    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int)
+    func shopListItemCell(_ cell: ShopListItemCell, didTapDetailFor item: Item)
 }
+
 
 class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     @IBOutlet weak var nameLabel: UILabel!
@@ -25,15 +27,16 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     var item: Item!
     var shopId: String!
     var groupId: String?
+    var shops: [Shop] = []
     var isChecked: Bool = false {
             didSet {
                 updateCheckButton()
             }
         }
     var toggleCheckAction: (() -> Void)?
-    weak var delegate: ShopListItemCellDelegate?
        var section: Int!
        var row: Int!
+    weak var delegate: ShopListItemCellDelegate?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -43,50 +46,14 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
    
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
-        guard let item = self.item, let shopId = self.shopId else { return }
-        guard let groupId = self.groupId else { return }
-        
+        // まずセル自身の状態を更新（見た目用）
         isChecked.toggle()
         updateCheckButton()
-        delegate?.shopListItemCell(self, didTapCheckButtonFor: item)
 
-        
-        // Firestore に反映
-        let itemRef = Firestore.firestore()
-            .collection("groups")
-            .document(groupId)
-            .collection("shops")
-            .document(shopId)
-            .collection("items")
-            .document(item.id)
+        // どのセルが押されたかを VC に伝える
+        delegate?.shopListItemCell(self, didToggleCheckAt: section, row: row)
+    }
 
-        itemRef.updateData(["isChecked": isChecked]) { error in
-            if let error = error {
-                print("チェック状態更新失敗: \(error)")
-            } else {
-                print("チェック状態更新成功")
-            }
-        }
-
-        // 通知で TotalAmountVC に送信
-        if isChecked {
-            NotificationCenter.default.post(
-                name: .didAddItemToTotalAmount,
-                object: nil,
-                userInfo: ["shopId": shopId, "itemId": item.id]
-            )
-        } else {
-                // チェック外したら TotalAmountVC からも削除する場合はここ
-                NotificationCenter.default.post(
-                    name: .didRemoveItemFromTotalAmount,
-                    object: nil,
-                    userInfo: ["shopId": shopId, "itemId": item.id]
-                )
-            }
-
-            print("chekbuttonが押されました")
-        }
-    
     private func updateCheckButton() {
         let imageName = isChecked ? "checkmark.circle.fill" : "circle"
         checkButton.setImage(UIImage(systemName: imageName), for: .normal)
@@ -129,7 +96,7 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     
     @IBAction func detailButtonTapped(_ sender: UIButton) {
         if let item = item {
-            delegate?.didTapDetail(for: item)
+            delegate?.shopListItemCell(self, didTapDetailFor: item)
         }
     }
 }

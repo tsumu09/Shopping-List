@@ -13,6 +13,8 @@ import FirebaseFirestore
 
 let locationManager = CLLocationManager()
 
+
+
 class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
 
     @IBOutlet weak var tableView: UITableView!
@@ -21,7 +23,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var saveDate: UserDefaults = UserDefaults.standard
     var shopName: [String] = []
     var shops: [Shop] = []
-    var groupId: String?
+    var groupId: String!
     var expandedSections: Set<Int> = []
     var listener: ListenerRegistration?
     var shopId: String?
@@ -82,14 +84,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         
         Shopping_List.locationManager.delegate = self
         Shopping_List.locationManager.requestAlwaysAuthorization()
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
-            granted, error in
-            if granted {
-                print("通知の許可OK!")
-            } else {
-                print("通知の許可がもらえませんでした")
-            }
-        }
+//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
+//            granted, error in
+//            if granted {
+//                print("通知の許可OK!")
+//            } else {
+//                print("通知の許可がもらえませんでした")
+//            }
+//        }
     }
     
     //    @objc func reloadShops() {
@@ -139,45 +141,56 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return formatter.string(from: date)
     }
     
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return shops.count
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        // セクションヘッダーで店名を出しているなら「+1しない」→ items.count だけ返す
+        return shops[section].items.count
+    }
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let shop = shops[indexPath.section]
+
+        // 念のための範囲ガード（落ちない保険）
+        guard shop.items.indices.contains(indexPath.row) else {
+            print("⚠️ row out of range: section \(indexPath.section), row \(indexPath.row), items.count \(shop.items.count)")
+            return UITableViewCell()
+        }
+
+        let item = shop.items[indexPath.row]
+
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopListItemCell", for: indexPath) as? ShopListItemCell else {
             return UITableViewCell()
         }
-        let shop = shops[indexPath.section]
-        let item = shop.items[indexPath.row]
 
-        print("商品を表示中: \(item.name)")
-
+        // データ設定
         cell.item = item
         cell.shopId = shop.id
         cell.groupId = self.groupId
         cell.isChecked = item.isChecked
-        
-        // 🔹 delegate と位置情報を渡す
-        cell.delegate = self
+
+        //  タグは使わない
         cell.section = indexPath.section
         cell.row = indexPath.row
-        
-        cell.nameLabel.text = item.name
-        cell.detailLabel?.text = item.detail
-        cell.deadlineLabel?.text = formatDate(item.deadline)
-        cell.importance = item.importance
-       
-       
+        cell.delegate = self
 
-        // ボタン・ラベル関連
+        // 表示
         cell.nameLabel.text = item.name
         cell.detailLabel?.text = item.detail
         cell.deadlineLabel?.text = formatDate(item.deadline)
         cell.importance = item.importance
-        
+
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
         cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
-
-        print("表示する商品名 : \(item.name)")
         return cell
     }
+
+
+
+
 
     
     func fetchItems(for shop: Shop) {
@@ -283,23 +296,13 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     
     
-    // セクションの数 = お店の数
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return shops.count
-    }
+
     
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return 60
     }
     
-    // 各セクションに表示する商品の数（isExpandedで制御）
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if shops[section].isExpanded {
-            return shops[section].items.count
-        } else {
-            return 0
-        }
-    }
+   
 
     
     //            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -462,42 +465,76 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
 
 
-extension ShopListViewController: ItemListViewControllerDelegate {
-    func didUpdateItem(shopIndex: Int, itemIndex: Int, updatedItem: Item) {
-        shops[shopIndex].items[itemIndex] = updatedItem
-        tableView.reloadData()
-    }
-}
-
 extension ShopListViewController: ShopListItemCellDelegate {
-    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
-        shops[section].items[row].price = price
 
-        let groupId = self.groupId!
-        let shopId = shops[section].id
-        let item = shops[section].items[row]
-
-        let shop = shops[section]
-        FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: item) { error in
-            if let error = error {
-                print("価格更新失敗: \(error)")
-            } else {
-                print("価格更新成功")
-            }
+    // 1️⃣ チェックボタン押下
+    func shopListItemCell(_ cell: ShopListItemCell, didToggleCheckAt section: Int, row: Int) {
+        guard shops.indices.contains(section),
+              shops[section].items.indices.contains(row) else {
+            print("⚠️ invalid index: section \(section), row \(row)")
+            return
         }
 
+        var item = shops[section].items[row]
+        item.isChecked.toggle()
+        shops[section].items[row] = item
 
-        // 合計計算はしない
-        let indexSet = IndexSet(integer: section)
-        tableView.reloadSections(indexSet, with: .none)
+        let shop = shops[section]
+        let update: [String: Any] = [
+            "isChecked": item.isChecked,
+            "purchasedDate": item.isChecked ? Timestamp(date: Date()) : FieldValue.delete()
+        ]
+        Firestore.firestore()
+            .collection("groups").document(groupId)
+               .collection("shops")
+               .document(shop.id)
+               .collection("items")
+               .document(item.id)
+               .updateData(update) { error in
+                if let error = error {
+                    print("購入状態更新失敗: \(error)")
+                }
+            }
+
+        tableView.reloadRows(at: [IndexPath(row: row, section: section)], with: .automatic)
     }
 
+    // 2️⃣ 価格変更
+    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
+        guard shops.indices.contains(section),
+              shops[section].items.indices.contains(row) else { return }
 
-    
-    func didTapDetail(for item: Item) {
-        // 詳細画面遷移
+        shops[section].items[row].price = price
+        let item = shops[section].items[row]
+        let shop = shops[section]
+
+        let update: [String: Any] = ["price": price]
+        Firestore.firestore()
+            .collection("groups").document(groupId)
+                .collection("shops")
+                .document(shop.id)
+                .collection("items")
+                .document(item.id)
+                .updateData(update) { error in
+                if let error = error {
+                    print("価格更新失敗: \(error)")
+                }
+            }
+
+        tableView.reloadRows(at: [IndexPath(row: row, section: section)], with: .automatic)
+    }
+
+    // 3️⃣ 詳細ボタン押下
+    func shopListItemCell(_ cell: ShopListItemCell, didTapDetailFor item: Item) {
+        // ここで詳細画面に遷移
+        let vc = ItemListViewController() // 自分の詳細VCに合わせて変更
+        vc.item = item
+        self.navigationController?.pushViewController(vc, animated: true)
     }
 }
+
+
+
 
 
 //extension ShopListViewController: ShopAddViewControllerDelegate {

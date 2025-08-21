@@ -20,17 +20,36 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     var shops: [Shop] = []
     var items: [Item] = []
     var item: Item?
+    var shopTotalprices: [String: Int] = [:]
+    var currentMonth: Date = Date()
+    var currentDate = Date()
+    var allItems: [Item] = []
+    var total: Double = 0
+    var checkedItemsByShop: [[Item]] = []
+    
     private var itemListeners: [String: ListenerRegistration] = [:] // shop.id -> listener
     let db = Firestore.firestore()
     
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var monthlyTotalLabel: UILabel!
+    @IBOutlet weak var monthLabel: UILabel!
 
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
         tableView.delegate = self
         
+        updateMonthLabel()
+        fetchItemsForCurrentMonth()
+        
         guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        let currentMonthStart = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date()))!
+        fetchMonthlyTotal(for: currentMonthStart) { total in
+            print("今月の合計: \(total)円")
+        }
+
         
         Firestore.firestore().collection("users").document(uid).getDocument { [weak self] snapshot, error in
             guard let self = self else { return }
@@ -46,6 +65,9 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
                     for shop in self.shops {
                         self.startCheckedItemsListener(for: shop)
                     }
+                    self.checkedItemsByShop = self.shops.map { shop in
+                            shop.items.filter { $0.isChecked }
+                        }
                     
                     DispatchQueue.main.async {
                         self.tableView.reloadData()
@@ -55,6 +77,13 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             }
         }
     }
+    
+    func shopItemCell(_ cell: ShopListItemCell, didToggleCheckAt item: Item) {
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        shops[indexPath.section].items[indexPath.row] = item
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
+
     
     func fetchShopNames() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -104,43 +133,134 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             }
     }
     
-    private func startCheckedItemsListener(for shop: Shop) {
-            guard let groupId = self.groupId else { return }
+    func updateCheckedItems() {
+        checkedItemsByShop = shops.map { shop in
+            shop.items.filter { $0.isChecked }
+        }
+        tableView.reloadData()
+    }
 
-            // 既にあれば解除してから（保険）
-            itemListeners[shop.id]?.remove()
-
-            let listener = Firestore.firestore()
-                .collection("groups").document(groupId)
-                .collection("shops").document(shop.id)
-                .collection("items")
-                .whereField("isChecked", isEqualTo: true)     // チェック済みだけ！
-                .addSnapshotListener { [weak self] snapshot, error in
-                    guard let self = self else { return }
-                    if let error = error {
-                        print("Checked items 取得失敗(shop=\(shop.name)): \(error)")
-                        return
-                    }
-
-                    let checkedItems: [Item] = snapshot?.documents.compactMap {
-                        Item.fromDictionary($0.data(), id: $0.documentID)
-                    } ?? []
-
-                    // 対象ショップの items を「チェック済みだけ」に差し替える
-                    if let idx = self.shops.firstIndex(where: { $0.id == shop.id }) {
-                        self.shops[idx].items = checkedItems
-
-                        // そのセクションだけ更新でOK
-                        DispatchQueue.main.async {
-                            self.tableView.reloadData()
+    
+    func startCheckedItemsListener(for shop: Shop) {
+        guard let groupId = self.groupId else { return }
+        
+        let shopsRef = Firestore.firestore()
+            .collection("groups")
+            .document(groupId)
+            .collection("shops")
+        
+        // すべてのショップを監視
+        shopsRef.addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self else { return }
+            if let error = error {
+                print("ショップ取得失敗: \(error)")
+                return
+            }
+            
+            var totalAmount = 0
+            var shopTotalprices: [String: Int] = [:]  // ショップごとの小計を保持
+            
+            // 各ショップごとにループ
+            snapshot?.documents.forEach { shopDoc in
+                let shopId = shopDoc.documentID
+                let shopName = shopDoc.data()["name"] as? String ?? "不明なお店"
+                
+                shopsRef.document(shopId).collection("items")
+                    .whereField("isChecked", isEqualTo: true)
+                    .addSnapshotListener { itemSnapshot, itemError in
+                        if let itemError = itemError {
+                            print("商品取得失敗: \(itemError)")
+                            return
                         }
-
+                        
+                        var shopTotal = 0
+                        itemSnapshot?.documents.forEach { itemDoc in
+                            let data = itemDoc.data()
+                            if let price = data["price"] as? Int {
+                                shopTotal += price
+                            }
+                        }
+                        
+                        shopTotalprices[shopName] = shopTotal
+                        
+                        // 全体合計を再計算
+                        totalAmount = shopTotalprices.values.reduce(0, +)
+                        
+                        DispatchQueue.main.async {
+                            // 全体の合計ラベル更新
+                            self.monthlyTotalLabel.text = "合計: \(totalAmount)円"
+                            
+                        }
                     }
+            }
+        }
+    }
+
+
+    func fetchMonthlyTotal(for monthStart: Date, completion: @escaping (Int) -> Void) {
+        guard let groupId = groupId else { return }
+        
+        let calendar = Calendar.current
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthStart))!
+        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+        
+        var checkedItemsByShopTemp: [[Item]] = Array(repeating: [], count: self.shops.count)
+       
+
+        
+        Firestore.firestore()
+            .collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("月合計の取得失敗: \(error)")
+                    completion(0)
+                    return
+                }
+                
+                var total = 0
+                let dispatchGroup = DispatchGroup()
+                
+                snapshot?.documents.forEach { shopDoc in
+                    dispatchGroup.enter()
+                    
+                    shopDoc.reference.collection("items")
+                        .whereField("isChecked", isEqualTo: true)
+                        .whereField("purchasedDate", isGreaterThanOrEqualTo: startOfMonth)
+                        .whereField("purchasedDate", isLessThanOrEqualTo: endOfMonth)
+                        .getDocuments { itemsSnapshot, error in
+                            if let error = error {
+                                print("商品取得失敗: \(error)")
+                            } else {
+                                itemsSnapshot?.documents.forEach { itemDoc in
+                                    if let price = itemDoc.data()["price"] as? Double {
+                                        total += Int(price) // Double → Int に変換
+                                    }
+                                }
+                            }
+                            dispatchGroup.leave()
+                        }
+                }
+                
+                dispatchGroup.notify(queue: .main) {
+                    self.checkedItemsByShop = checkedItemsByShopTemp
+                    self.updateCheckedItems()
+
+                    // ここでリスナー開始
+                    for shop in self.shops {
+                        self.startCheckedItemsListener(for: shop)
+                    }
+
+                    self.tableView.reloadData()
                 }
 
-            itemListeners[shop.id] = listener
-        }
+            }
+    }
 
+
+
+    
     private func stopAllItemListeners() {
             for (_, lsn) in itemListeners {
                 lsn.remove()
@@ -153,52 +273,168 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1 + shops[section].items.count
+        let checkedItems = shops[section].items.filter { $0.isChecked }
+        return 1 + checkedItems.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let shop = shops[indexPath.section]
+        let checkedItems = shop.items.filter { $0.isChecked }
+
         if indexPath.row == 0 {
             // ショップ名セル
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: "ShopCell", for: indexPath) as? ShopCell else {
-                return UITableViewCell()
-            }
-            let shop = shops[indexPath.section]
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountShopCell", for: indexPath) as! TotalAmountShopCell
             cell.shopNameLabel.text = shop.name
-            
-            // 合計金額計算
-            let total = shop.items.reduce(0) { $0 + $1.price }
-            cell.totalPriceLabel.text = "¥\(Int(total))"
-            
+            let total = checkedItems.reduce(0) { $0 + Int($1.price) }
+            cell.totalPriceLabel.text = "¥\(total)"
             return cell
         } else {
             // 商品セル
-               let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountItemCell", for: indexPath) as! TotalAmountItemCell
-            let item = shops[indexPath.section].items[indexPath.row - 1]
-
-               cell.item = item
-               cell.itemNameLabel.text = item.name
-               cell.priceTextField.text = String(format: "%.2f", item.price)
-               cell.section = indexPath.section
-               cell.row = indexPath.row - 1
-               cell.delegate = self
-
-               // ここで delegate を設定
-               cell.priceTextField.delegate = cell
-
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountItemCell", for: indexPath) as! TotalAmountItemCell
+            let item = checkedItems[indexPath.row - 1]
+            cell.item = item
+            cell.itemNameLabel.text = item.name
             cell.priceTextField.text = String(Int(item.price))
-            
-               return cell
-           }
-       }
+            cell.section = indexPath.section
+            cell.row = indexPath.row - 1
+            cell.delegate = self
+            return cell
+        }
+    }
     
     func updateTotalPriceInCells() {
         for section in 0..<shops.count {
             let total = shops[section].items.reduce(0) { $0 + Int($1.price) }
-            if let cell = tableView.cellForRow(at: IndexPath(row: 0, section: section)) as? ShopCell {
+            if let cell = tableView.cellForRow(at: IndexPath(row: 0, section: section)) as? TotalAmountShopCell {
                 cell.totalPriceLabel.text = "¥\(total)"
             }
         }
     }
+    
+    func fetchCheckedItemsForMonth() {
+        guard let groupId = SessionManager.shared.groupId else { return }
+
+        let calendar = Calendar.current
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
+
+        var comps = DateComponents()
+        comps.month = 1     // 翌月
+        comps.second = -1   // 1秒引く → 今月末の23:59:59
+        let endOfMonth = calendar.date(byAdding: comps, to: startOfMonth)!
+
+        Firestore.firestore()
+            .collectionGroup("items")   // ← Firestoreルートから直接
+            .whereField("groupId", isEqualTo: groupId) // 必ず groupId で絞る
+            .whereField("isChecked", isEqualTo: true)
+            .whereField("purchasedDate", isGreaterThanOrEqualTo: Timestamp(date: startOfMonth))
+            .whereField("purchasedDate", isLessThanOrEqualTo: Timestamp(date: endOfMonth))
+            .addSnapshotListener { (snapshot: QuerySnapshot?, error: Error?) in
+                    guard let snapshot = snapshot else {
+                        if let error = error {
+                            print("データ取得失敗: \(error)")
+                        }
+                        return
+                    }
+                    
+                    self.items = snapshot.documents.compactMap { doc in
+                        try? doc.data(as: Item.self)
+                    }
+                    
+                let total = self.items.reduce(0) { $0 + ($1.price) }
+                    self.monthlyTotalLabel.text = "¥\(total)"
+                    self.tableView.reloadData()
+                }
+
+    }
+
+    
+    @IBAction func prevMonthTapped(_ sender: UIButton) {
+        changeMonth(by: -1)
+    }
+
+    @IBAction func nextMonthTapped(_ sender: UIButton) {
+        changeMonth(by: 1)
+    }
+
+    func changeMonth(by value: Int) {
+        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: currentDate) {
+            currentDate = newDate
+            updateMonthLabel()
+            fetchItemsForCurrentMonth()
+        }
+    }
+
+    func updateMonthLabel() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy年M月"
+        monthLabel.text = formatter.string(from: currentDate)
+    }
+
+    func fetchItemsForCurrentMonth() {
+        guard let groupId = self.groupId else { return }
+
+        let calendar = Calendar.current
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
+        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+
+        db.collection("groups").document(groupId).collection("shops").getDocuments { snapshot, error in
+            guard let shopsDocs = snapshot?.documents else { return }
+
+            // 過去月でもお店だけは取得して配列を作る
+            self.shops = shopsDocs.map { doc in
+                let data = doc.data()
+                let name = data["name"] as? String ?? "不明なお店"
+                let lat = data["latitude"] as? Double ?? 0.0
+                let lng = data["longitude"] as? Double ?? 0.0
+                return Shop(id: doc.documentID, name: name, latitude: lat, longitude: lng, items: [])
+            }
+
+            let dispatchGroup = DispatchGroup()
+            var checkedItemsByShopTemp: [[Item]] = Array(repeating: [], count: self.shops.count)
+
+            for (index, shopDoc) in shopsDocs.enumerated() {
+                let shopId = shopDoc.documentID
+                dispatchGroup.enter()
+
+                shopDoc.reference.collection("items").getDocuments { itemSnap, error in
+                    defer { dispatchGroup.leave() }
+                    guard let itemDocs = itemSnap?.documents else { return }
+
+                    let allItems = itemDocs.compactMap { doc -> Item? in
+                        try? doc.data(as: Item.self)
+                    }
+
+                    // 今月チェック済みアイテムだけフィルター
+                    let checkedItems = allItems.filter { item in
+                        if let purchasedDate = item.purchasedDate {
+                            return item.isChecked &&
+                                   purchasedDate >= startOfMonth &&
+                                   purchasedDate <= endOfMonth
+                        } else {
+                            return false
+                        }
+                    }
+
+                    // shops 配列に安全に代入
+                    if let idx = self.shops.firstIndex(where: { $0.id == shopId }) {
+                        self.shops[idx].items = checkedItems
+                        checkedItemsByShopTemp[idx] = checkedItems
+                    } else {
+                        print("⚠️ shops 配列に shopId \(shopId) は存在しません")
+                        print("現在のself.shopsのid一覧: \(self.shops.map { $0.id })")
+                    }
+                }
+            }
+
+            dispatchGroup.notify(queue: .main) {
+                self.checkedItemsByShop = checkedItemsByShopTemp
+                self.updateCheckedItems()
+                self.tableView.reloadData()
+            }
+        }
+    }
+
+
 
 //    
 //
@@ -243,25 +479,81 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
 
 }
 
-extension TotalAmountViewController: TotalAmountItemCellDelegate {
-    func TotalAmountItemCell(_ cell: TotalAmountItemCell, section: Int, row: Int) {
-       
-        // Firestoreに保存
-        let shop = shops[section]
+extension TotalAmountViewController: ShopListItemCellDelegate {
+    
+    func shopListItemCell(_ cell: ShopListItemCell, didToggleCheckAt section: Int, row: Int) {
+        // 配列更新
         let item = shops[section].items[row]
-        FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: item) { error in
+        shops[section].items[row] = item
+
+        // Firestore 更新
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: item) { error in
             if let error = error {
                 print("アイテム更新失敗: \(error)")
             } else {
                 print("アイテム更新成功")
             }
         }
-        
-        // 該当セクションだけ更新して合計金額を反映
+
+        // 該当セクションだけ再描画
         tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
     
-    func didTapDetail(for item: Item) {
-        // 詳細画面遷移処理
+    func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
+        // 価格変更時も同じデリゲートで対応
+        shops[section].items[row].price = price
+        let item = shops[section].items[row]
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: item) { error in
+            if let error = error {
+                print("価格更新失敗: \(error)")
+            } else {
+                print("価格更新成功")
+            }
+        }
+        
+        tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
+    
+    func shopListItemCell(_ cell: ShopListItemCell, didTapDetailFor item: Item) {
+        // 詳細画面遷移
+    }
+    
+    
+}
+extension TotalAmountViewController: TotalAmountItemCellDelegate {
+
+    // 価格変更時
+    func totalAmountItemCell(_ cell: TotalAmountItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
+        // 配列を更新
+        shops[section].items[row].price = price
+        let item = shops[section].items[row]
+
+        // Firestore 更新
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: item) { error in
+            if let error = error {
+                print("価格更新失敗: \(error)")
+            } else {
+                print("価格更新成功")
+            }
+        }
+
+        // 該当セクションだけ再描画
+        tableView.reloadSections(IndexSet(integer: section), with: .automatic)
+    }
+
+    // チェックボタン押下時
+    func totalAmountItemCell(_ cell: TotalAmountItemCell, didToggleCheck section: Int, row: Int) {
+        shops[section].items[row].isChecked.toggle()
+
+        // ✅ checkedItemsByShop 更新
+        updateCheckedItems()
+
+        // Firestore 更新
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: shops[section].items[row]) { error in
+            if let error = error {
+                print("チェック状態更新失敗: \(error)")
+            }
+        }
+    }
+
 }

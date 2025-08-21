@@ -10,8 +10,6 @@ import UIKit
 class ShopCell: UITableViewCell {
     @IBOutlet weak var shopNameLabel: UILabel!
     @IBOutlet weak var addItemButton: UIButton!
-    @IBOutlet weak var totalPriceLabel: UILabel!
-    
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -26,7 +24,6 @@ class ShopCell: UITableViewCell {
     
     func configure(shop: Shop) {
            shopNameLabel.text = shop.name
-           totalPriceLabel.text = "合計: \(Int(shop.totalPrice))円"
        }
     
 }

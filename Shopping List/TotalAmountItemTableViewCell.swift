@@ -8,8 +8,10 @@
 import UIKit
 
 protocol TotalAmountItemCellDelegate: AnyObject {
-    func TotalAmountItemCell(_ cell: TotalAmountItemCell, section: Int, row: Int)
+    func totalAmountItemCell(_ cell: TotalAmountItemCell, didUpdatePrice price: Double, section: Int, row: Int)
+    func totalAmountItemCell(_ cell: TotalAmountItemCell, didToggleCheck section: Int, row: Int)
 }
+
 
 
 class TotalAmountItemCell: UITableViewCell, UITextFieldDelegate {

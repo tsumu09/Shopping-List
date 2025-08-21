@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct Item: Identifiable {
+struct Item: Codable, Identifiable {
     var id: String
     var name: String
     var price: Double
@@ -17,7 +17,9 @@ struct Item: Identifiable {
     var detail: String
     var deadline: Date?
     var requestedBy: String
-    
+    var purchasedDate: Date?  // ← 追加
+
+    // Firestore の Dictionary から生成するメソッド
     static func fromDictionary(_ dict: [String: Any], id: String) -> Item {
         let name = dict["name"] as? String ?? ""
         let price = dict["price"] as? Double ?? 0
@@ -27,7 +29,9 @@ struct Item: Identifiable {
         let deadlineTimestamp = dict["deadline"] as? Timestamp
         let deadline = deadlineTimestamp?.dateValue()
         let requestedBy = dict["requestedBy"] as? String ?? ""
-        
+        let purchasedTimestamp = dict["purchasedDate"] as? Timestamp  // ← 追加
+        let purchasedDate = purchasedTimestamp?.dateValue()           // ← 追加
+
         return Item(
             id: id,
             name: name,
@@ -36,7 +40,8 @@ struct Item: Identifiable {
             importance: importance,
             detail: detail,
             deadline: deadline,
-            requestedBy: requestedBy
+            requestedBy: requestedBy,
+            purchasedDate: purchasedDate  // ← 追加
         )
     }
 }
