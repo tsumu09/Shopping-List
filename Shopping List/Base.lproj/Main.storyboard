@@ -373,10 +373,10 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Lfz-gh-lyK" customClass="DetailButton" customModule="Shopping_List" customModuleProvider="target">
-                                                    <rect key="frame" x="316" y="11" width="66" height="35"/>
+                                                    <rect key="frame" x="324" y="12" width="50" height="35"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <state key="normal" title="Button"/>
-                                                    <buttonConfiguration key="configuration" style="plain" title="detail"/>
+                                                    <buttonConfiguration key="configuration" style="plain" image="info.circle" catalog="system"/>
                                                     <connections>
                                                         <action selector="detailButtonTapped:" destination="3Gh-E2-Zew" eventType="touchUpInside" id="1VB-AX-WlM"/>
                                                     </connections>
@@ -402,7 +402,7 @@
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
                                         <connections>
                                             <outlet property="checkButton" destination="rWc-4S-X3W" id="NBh-A4-QEb"/>
-                                            <outlet property="detailButton" destination="Lfz-gh-lyK" id="btO-ks-Nep"/>
+                                            <outlet property="detailButton" destination="Lfz-gh-lyK" id="EOT-S2-7nt"/>
                                             <outlet property="nameLabel" destination="USW-64-Wdk" id="KKl-Rx-9vn"/>
                                         </connections>
                                     </tableViewCell>
@@ -693,7 +693,7 @@
                         <outlet property="deadlineDatePicker" destination="D40-FW-gLv" id="8bd-un-bfN"/>
                         <outlet property="detailTextView" destination="CsA-Zi-0bn" id="JTp-p6-kpa"/>
                         <outlet property="importanceSegment" destination="ci8-6v-rpj" id="zDU-KU-6Wt"/>
-                        <outlet property="nameTextField" destination="qsf-z7-Mam" id="NXc-eB-gp8"/>
+                        <outlet property="nameTextField" destination="qsf-z7-Mam" id="q4h-Dr-XdK"/>
                         <outlet property="priceTextField" destination="Gb9-kY-3Fj" id="EeO-Nl-Lpo"/>
                     </connections>
                 </viewController>
@@ -1148,6 +1148,7 @@
     </scenes>
     <resources>
         <image name="circle" catalog="system" width="128" height="123"/>
+        <image name="info.circle" catalog="system" width="128" height="123"/>
         <namedColor name="WidgetBackground">
             <color red="0.0" green="0.46000000000000002" blue="0.89000000000000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>

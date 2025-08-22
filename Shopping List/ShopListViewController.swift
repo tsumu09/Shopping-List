@@ -462,13 +462,43 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 }
 
                 print("取得した items 数: \(documents.count)")
-                documents.forEach { doc in
-                    print("item name: \(doc["name"] as? String ?? "nil")")
+            documents.forEach { doc in
+                do {
+                    let item = try doc.data(as: Item.self)
+                    print("デコード成功: \(item.name)")
+                } catch {
+                    print("デコード失敗: \(error)")
                 }
+            }
 
-                let updatedItems: [Item] = documents.compactMap { doc in
-                    try? doc.data(as: Item.self)
-                }
+
+            let updatedItems: [Item] = documents.map { doc in
+                let data = doc.data()
+                let id = doc.documentID
+                let name = data["name"] as? String ?? ""
+                let price = data["price"] as? Double ?? 0
+                let isChecked = data["isChecked"] as? Bool ?? false
+                let importance = data["importance"] as? Int ?? 1
+                let detail = data["detail"] as? String ?? ""
+                let requestedBy = data["requestedBy"] as? String ?? ""
+                let deadline = (data["deadline"] as? Timestamp)?.dateValue()
+                let purchasedDate = (data["purchasedDate"] as? Timestamp)?.dateValue()
+                let buyerIds = data["buyerIds"] as? [String] ?? []
+
+                return Item(
+                    id: id,
+                    name: name,
+                    price: price,
+                    isChecked: isChecked,
+                    importance: importance,
+                    detail: detail,
+                    deadline: deadline,
+                    requestedBy: requestedBy,
+                    purchasedDate: purchasedDate,
+                    buyerIds: buyerIds
+                )
+            }
+
 
                 print("取得した items 数: \(updatedItems.count)")
                 updatedItems.forEach { print($0.name) }

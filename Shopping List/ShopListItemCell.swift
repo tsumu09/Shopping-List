@@ -40,10 +40,24 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        selectionStyle = .none
+        
+        // セル選択時の背景を透明に
+        let bgView = UIView()
+        bgView.backgroundColor = .clear
+        selectedBackgroundView = bgView
+
+        // チェックボタンのハイライト無効化（青くならないように）
+        if var config = checkButton.configuration {
+            config.showsActivityIndicator = false
+            config.background.backgroundColor = .clear
+            checkButton.configuration = config
+        }
+
+        // ボタンの画像の初期状態を設定
         updateCheckButton()
     }
-   
+
+
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
         // まずセル自身の状態を更新（見た目用）
@@ -77,9 +91,9 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     
     private func updateBackgroundColor() {
         switch importance {
-        case 2:
+        case 3:
             contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3)// 高
-        case 1:
+        case 2:
             contentView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3) // 中
         default:
             contentView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.3) // 低
@@ -95,10 +109,16 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
 
     
     @IBAction func detailButtonTapped(_ sender: UIButton) {
-        if let item = item {
-            delegate?.shopListItemCell(self, didTapDetailFor: item)
+        // item が存在するかチェック
+        guard let item = item else {
+            print("Error: item が nil です")
+            return
         }
+
+        // delegate が存在する場合のみ呼び出し
+        delegate?.shopListItemCell(self, didTapDetailFor: item)
     }
+
 }
 
 extension Notification.Name {
