@@ -74,31 +74,39 @@ final class FirestoreManager {
                  price: Double,
                  importance: Int,
                  detail: String,
-                 completion: @escaping (Error?) -> Void) {
+                 completion: @escaping (Result<String, Error>) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
+
         let itemRef = db
             .collection("groups").document(groupId)
             .collection("shops").document(shopId)
-            .collection("items").document()
-        
-        let itemId = itemRef.documentID  // ← ここでIDを取得
+            .collection("items").document() // ← Firestore ID
 
+        let itemId = itemRef.documentID
         let data: [String: Any] = [
-            "id": itemId,                  // ← ここにIDを含める
+            "id": itemId,
             "name": name,
             "price": price,
             "importance": importance,
             "requestedBy": uid,
             "createdAt": Timestamp(),
-            "detail": detail
+            "detail": detail,
+            "isChecked": false,
+            "buyerIds": []
         ]
+
         itemRef.setData(data) { error in
-            completion(error)
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(itemId)) // ← ID を返す
+            }
         }
     }
 
-    
 
+
+    
 
     func updateItem(groupId: String, shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
         guard !item.id.isEmpty else {
@@ -107,18 +115,19 @@ final class FirestoreManager {
             return
         }
 
-        let db = Firestore.firestore()
-
         let docRef = db.collection("groups").document(groupId)
                        .collection("shops").document(shop.id)
-                       .collection("items").document(item.id) // ← ここ！
+                       .collection("items").document(item.id)
 
         let data: [String: Any] = [
             "name": item.name,
             "price": item.price,
             "detail": item.detail,
-            "deadline": Timestamp(date: item.deadline!),
-            "importance": item.importance
+            "deadline": item.deadline != nil ? Timestamp(date: item.deadline!) : FieldValue.serverTimestamp(),
+            "importance": item.importance,
+            "isChecked": item.isChecked,
+            "buyerIds": item.buyerIds, 
+            "purchasedDate": item.purchasedDate ?? FieldValue.serverTimestamp()
         ]
 
         docRef.updateData(data) { error in
@@ -130,10 +139,6 @@ final class FirestoreManager {
             completion?(error)
         }
     }
-
-
-
-    
     /// グループ作成（トランザクションでグループ本体＋メンバー初期追加）
     func createGroup(name: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -244,7 +249,8 @@ final class FirestoreManager {
                                     importance: i["importance"] as? Int ?? 0,
                                     detail: i["detail"] as? String ?? "",
                                     deadline: i["deadline"] as? Date ?? Date(),
-                                    requestedBy: i["deadline"] as? String ?? ""
+                                    requestedBy: i["requestedBy"] as? String ?? "",
+                                    buyerIds: i["buyerIds"] as? [String] ?? []   // ←追加
                                 )
                             } ?? []
                             shops.append(shop)
@@ -281,7 +287,8 @@ final class FirestoreManager {
                     importance: d["importance"] as? Int ?? 0,
                     detail: d["detail"] as? String ?? "",
                     deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
-                    requestedBy: d["requestedBy"] as? String ?? ""
+                    requestedBy: d["requestedBy"] as? String ?? "",
+                    buyerIds: d["buyerIds"] as? [String] ?? []
                 )
             }
             onUpdate(items)
@@ -372,7 +379,30 @@ final class FirestoreManager {
                 }
             }
         }
+    func fetchItems(groupId: String, shop: Shop, completion: @escaping ([Item]) -> Void) {
+            let db = Firestore.firestore()
+            db.collection("groups")
+                .document(groupId)
+                .collection("shops")
+                .document(shop.id)
+                .collection("items")
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("商品取得失敗: \(error.localizedDescription)")
+                        completion([])
+                        return
+                    }
 
+                    var items: [Item] = []
+                    snapshot?.documents.forEach { doc in
+                        if let item = try? doc.data(as: Item.self) {
+                            items.append(item)
+                        }
+                    }
+
+                    completion(items)
+                }
+        }
     
 }
 
@@ -387,7 +417,17 @@ struct FirestoreUser {
 }
 
 extension FirestoreManager {
-    
-    
-
+    func fetchUserNames(completion: @escaping ([String: String]) -> Void) {
+        db.collection("users").getDocuments { snapshot, error in
+            var names: [String: String] = [:]
+            if let docs = snapshot?.documents {
+                for doc in docs {
+                    let data = doc.data()
+                    let displayName = (data["first_name"] as? String ?? "") + " " + (data["last_name"] as? String ?? "")
+                    names[doc.documentID] = displayName
+                }
+            }
+            completion(names)
+        }
+    }
 }

@@ -770,10 +770,18 @@
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="buyer" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mTi-Dg-AQg">
+                                                    <rect key="frame" x="153" y="18" width="77" height="21"/>
+                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
                                             </subviews>
                                         </tableViewCellContentView>
                                         <accessibility key="accessibilityConfiguration" identifier="ShopItemCell"/>
                                         <connections>
+                                            <outlet property="buyerLabel" destination="mTi-Dg-AQg" id="aMF-Nz-qpT"/>
                                             <outlet property="itemNameLabel" destination="GNB-0o-MdW" id="Gfm-P4-2NO"/>
                                             <outlet property="priceTextField" destination="PCZ-Bx-f6O" id="1F3-vF-8jP"/>
                                         </connections>

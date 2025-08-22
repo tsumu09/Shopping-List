@@ -26,6 +26,8 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     var allItems: [Item] = []
     var total: Double = 0
     var checkedItemsByShop: [[Item]] = []
+    var userNames: [String: String] = [:]
+
     
     private var itemListeners: [String: ListenerRegistration] = [:] // shop.id -> listener
     let db = Firestore.firestore()
@@ -42,6 +44,7 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
         
         updateMonthLabel()
         fetchItemsForCurrentMonth()
+        fetchUserNames()
         
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
@@ -77,6 +80,18 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             }
         }
     }
+    
+    func fetchUserNames() {
+        FirestoreManager.shared.fetchUserNames { names in
+            self.userNames = names
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+    }
+
+    
+
     
     func shopItemCell(_ cell: ShopListItemCell, didToggleCheckAt item: Item) {
         guard let indexPath = tableView.indexPath(for: cell) else { return }
@@ -298,7 +313,15 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             cell.section = indexPath.section
             cell.row = indexPath.row - 1
             cell.delegate = self
+            cell.buyerLabel.text = item.buyerIds.compactMap { self.userNames[$0] }.joined(separator: ", ")
+
+            
+            // ここで購入者の名前を表示
+            let buyers = item.buyerIds.compactMap { self.userNames[$0] }
+            cell.buyerLabel.text = buyers.joined(separator: ", ")
+
             return cell
+
         }
     }
     
@@ -434,9 +457,42 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
         }
     }
 
+    func updateItemCheckStatus(for item: Item, in shop: Shop) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        var updatedItem = item
 
+        if let index = updatedItem.buyerIds.firstIndex(of: uid) {
+            // すでに買った → 削除
+            updatedItem.buyerIds.remove(at: index)
+            updatedItem.isChecked = !updatedItem.buyerIds.isEmpty
+            updatedItem.purchasedDate = updatedItem.buyerIds.isEmpty ? nil : Date()
+        } else {
+            // 新たに購入者追加
+            updatedItem.buyerIds.append(uid)
+            updatedItem.isChecked = true
+            updatedItem.purchasedDate = Date()
+        }
 
-//    
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: updatedItem) { [weak self] error in
+            if let error = error {
+                print("更新失敗: \(error.localizedDescription)")
+            } else {
+                print("更新成功")
+                // ↓ ②で修正
+                self?.reloadItems(for: shop)
+            }
+        }
+    }
+
+    func reloadItems(for shop: Shop) {
+        FirestoreManager.shared.fetchItems(groupId: groupId, shop: shop) { [weak self] (items: [Item]) in
+            guard let self = self else { return }
+            self.items = items
+            self.tableView.reloadData()
+        }
+    }
+    
+//
 //
 //    @objc func didReceiveItemNotification(_ notification: Notification) {
 //        guard
@@ -543,17 +599,42 @@ extension TotalAmountViewController: TotalAmountItemCellDelegate {
 
     // チェックボタン押下時
     func totalAmountItemCell(_ cell: TotalAmountItemCell, didToggleCheck section: Int, row: Int) {
-        shops[section].items[row].isChecked.toggle()
-
-        // ✅ checkedItemsByShop 更新
-        updateCheckedItems()
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        var item = shops[section].items[row]
+        
+        // チェック状態をトグル
+        item.isChecked.toggle()
+        
+        // チェックした場合は buyerIds に自分の UID を追加
+        if item.isChecked {
+            if !item.buyerIds.contains(uid) {
+                item.buyerIds.append(uid)
+            }
+        } else {
+            // チェック外した場合は buyerIds から自分の UID を削除
+            item.buyerIds.removeAll { $0 == uid }
+        }
+        
+        // 配列更新
+        func updateCheckedItems() {
+            checkedItemsByShop = shops.map { $0.items.filter { $0.isChecked } }
+        }
 
         // Firestore 更新
-        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: shops[section].items[row]) { error in
+        FirestoreManager.shared.updateItem(groupId: groupId, shop: shops[section], item: item) { error in
             if let error = error {
                 print("チェック状態更新失敗: \(error)")
+            } else {
+                print("チェック状態更新成功")
             }
         }
+        
+        // チェック済みアイテム配列更新
+        updateCheckedItems()
+        
+        // セクション再描画
+        tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
 
 }

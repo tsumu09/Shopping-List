@@ -17,6 +17,8 @@ protocol TotalAmountItemCellDelegate: AnyObject {
 class TotalAmountItemCell: UITableViewCell, UITextFieldDelegate {
     @IBOutlet weak var itemNameLabel: UILabel!
     @IBOutlet weak var priceTextField: UITextField!
+    @IBOutlet weak var buyerLabel: UILabel!
+
     
     var item: Item?
     weak var delegate: TotalAmountItemCellDelegate?

@@ -20,6 +20,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var familyLabel: UILabel!
     
+    let db = Firestore.firestore()
     var saveDate: UserDefaults = UserDefaults.standard
     var shopName: [String] = []
     var shops: [Shop] = []
@@ -30,12 +31,12 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var selectedShopIndex: Int?
     var items: [Item] = []
     weak var delegate: ItemAddViewControllerDelegate?
-    var itemsListener: ListenerRegistration?
+    var itemsListener: [String: ListenerRegistration] = [:]
     
     private func fetchGroupAndObserve() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
-        
+
         // まずユーザー情報から groupId を取得
         db.collection("users")
             .document(uid)
@@ -43,10 +44,10 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 guard let self = self,
                       let data = snap?.data(),
                       let gid = data["groupId"] as? String else { return }
-                
+
                 self.groupId = gid
                 SessionManager.shared.groupId = gid
-                self.expandedSections = Set(0..<self.shops.count) // 初回ロード時は全セクション展開しておく
+
                 // → グループ名も取得してタイトル更新
                 db.collection("groups")
                     .document(gid)
@@ -58,18 +59,25 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                             }
                         }
                     }
-                
-                // 既存のリスナー解除＆再登録
+
+                // 既存のショップリスナー解除
                 self.listener?.remove()
-                self.listener = FirestoreManager.shared
-                    .observeShops(in: gid) { shops in
-                        self.shops = shops
-                        // shops の数が変わったら全展開または必要に応じてリセット
-                        self.expandedSections = Set(0..<shops.count)
-                        self.tableView.reloadData()
+
+                // ショップリストを監視
+                self.listener = FirestoreManager.shared.observeShops(in: gid) { shops in
+                    self.shops = shops
+                    self.expandedSections = Set(0..<shops.count)
+                    self.tableView.reloadData()
+
+                    // ここで各ショップのアイテムリスナーを登録
+                    for shop in shops {
+                        self.startItemsListener(for: shop)
                     }
+                }
+
             }
     }
+
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -84,6 +92,18 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         
         Shopping_List.locationManager.delegate = self
         Shopping_List.locationManager.requestAlwaysAuthorization()
+        print("viewDidLoad shops count: \(shops.count)")
+            for shop in shops {
+                print("shop: \(shop.name), id: \(shop.id)")
+            }
+            
+            print("groupId: \(self.groupId ?? "nil")")
+            
+            for shop in shops {
+                startItemsListener(for: shop)
+            }
+
+
 //        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
 //            granted, error in
 //            if granted {
@@ -103,11 +123,19 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //        }
     //    }
     override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        // 画面閉じるときに監視解除
-        itemsListener?.remove()
-        itemsListener = nil
+            super.viewWillDisappear(animated)
+            for listener in itemsListener.values {
+                listener.remove()
+            }
+            itemsListener.removeAll()
+        }
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if let addVC = segue.destination as? ItemAddViewController {
+            addVC.shopListVC = self
+        }
     }
+
 //    override func viewWillAppear(_ animated: Bool) {
 //        super.viewWillAppear(animated)
 //        //        if let data = UserDefaults.standard.data(forKey: "shops") {
@@ -409,7 +437,52 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         }
     }
 
-    
+    func startItemsListener(for shop: Shop) {
+        print("startItemsListener called for shop: \(shop.name), id: \(shop.id)")
+        guard let groupId = self.groupId else { return }
+
+        let itemsRef = db.collection("groups")
+                         .document(groupId)
+                         .collection("shops")
+                         .document(shop.id)
+                         .collection("items")
+
+        // リスナーを保持しておくと後で解除できる
+        itemsListener[shop.id]?.remove()
+        itemsListener[shop.id] = itemsRef.addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self else { return }
+            if let error = error {
+                print("アイテムリスナー取得失敗: \(error)")
+                return
+            }
+
+            guard let documents = snapshot?.documents else {
+                    print("snapshot?.documents は nil です")
+                    return
+                }
+
+                print("取得した items 数: \(documents.count)")
+                documents.forEach { doc in
+                    print("item name: \(doc["name"] as? String ?? "nil")")
+                }
+
+                let updatedItems: [Item] = documents.compactMap { doc in
+                    try? doc.data(as: Item.self)
+                }
+
+                print("取得した items 数: \(updatedItems.count)")
+                updatedItems.forEach { print($0.name) }
+
+            if let index = self.shops.firstIndex(where: { $0.id == shop.id }) {
+                self.shops[index].items = updatedItems
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()  // ← これで安全
+                }
+            }
+
+
+        }
+    }
     
     
     //    func saveCheckStates() {

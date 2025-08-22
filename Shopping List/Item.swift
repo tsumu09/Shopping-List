@@ -17,8 +17,9 @@ struct Item: Codable, Identifiable {
     var detail: String
     var deadline: Date?
     var requestedBy: String
-    var purchasedDate: Date?  // ← 追加
-
+    var purchasedDate: Date?
+    var buyerIds: [String] = []
+    
     // Firestore の Dictionary から生成するメソッド
     static func fromDictionary(_ dict: [String: Any], id: String) -> Item {
         let name = dict["name"] as? String ?? ""
@@ -29,8 +30,9 @@ struct Item: Codable, Identifiable {
         let deadlineTimestamp = dict["deadline"] as? Timestamp
         let deadline = deadlineTimestamp?.dateValue()
         let requestedBy = dict["requestedBy"] as? String ?? ""
-        let purchasedTimestamp = dict["purchasedDate"] as? Timestamp  // ← 追加
-        let purchasedDate = purchasedTimestamp?.dateValue()           // ← 追加
+        let purchasedTimestamp = dict["purchasedDate"] as? Timestamp
+        let purchasedDate = purchasedTimestamp?.dateValue()
+        let buyerIds = dict["buyerIds"] as? [String] ?? []
 
         return Item(
             id: id,
@@ -41,9 +43,11 @@ struct Item: Codable, Identifiable {
             detail: detail,
             deadline: deadline,
             requestedBy: requestedBy,
-            purchasedDate: purchasedDate  // ← 追加
+            purchasedDate: purchasedDate,
+            buyerIds: buyerIds
         )
     }
+
 }
 
 //    init(name: String, price: Int, deadline: Date? = nil, detail: String, importance: Int, id: String, ) {

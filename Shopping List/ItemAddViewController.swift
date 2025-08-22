@@ -19,7 +19,7 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     var shops: [Shop] = []
     var groupId: String!
     var shopId: String!
-    
+    var shopListVC: ShopListViewController?
     
     @IBOutlet weak var itemImageView: UIImageView!
     
@@ -46,38 +46,44 @@ class ItemAddViewController: UIViewController, UIImagePickerControllerDelegate, 
     
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-            print("保存ボタンが押されました！")
-            guard let name = nameTextField.text, !name.isEmpty,
-                  let priceText = priceTextField.text, !priceText.isEmpty,
-                  let groupId = self.groupId,
-                  let shopId = self.shopId else {
-                print("入力不備（name / selectedShopIndex / groupId / shopId）")
-                return
-            }
-            let price = Double(priceText) ?? 0
-            let detail = detailTextView.text ?? ""
-            let importance = importanceSegment.selectedSegmentIndex + 1
-            // Firestoreに保存
-            FirestoreManager.shared.addItem(
-                to: groupId,
-                shopId: shopId,
-                name: name,
-                price: price,
-                importance: importance,
-                detail: detail
-            ) { [weak self] error in
-                DispatchQueue.main.async {
-                    sender.isEnabled = true
-                    if let err = error {
-                        // 登録失敗
-                    } else {
-                        // 登録完了 → 一つ前の画面（ShoppingListVC）に戻る
-                        self?.navigationController?.popViewController(animated: true)
-                    }
+        print("保存ボタンが押されました！")
+        guard let name = nameTextField.text, !name.isEmpty,
+              let priceText = priceTextField.text, !priceText.isEmpty,
+              let groupId = self.groupId,
+              let shopId = self.shopId else {
+            print("入力不備（name / price / groupId / shopId）")
+            return
+        }
+        
+        sender.isEnabled = false // 二重押し防止
+        
+        let price = Double(priceText) ?? 0
+        let detail = detailTextView.text ?? ""
+        let importance = importanceSegment.selectedSegmentIndex + 1
+        
+        FirestoreManager.shared.addItem(
+            to: groupId,
+            shopId: shopId,
+            name: name,
+            price: price,
+            importance: importance,
+            detail: detail
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                sender.isEnabled = true
+                guard let self = self else { return }
+
+                switch result {
+                case .failure(let error):
+                    print("アイテム追加失敗: \(error.localizedDescription)")
+                case .success(let itemId):
+                    print("追加成功, Firestore ID: \(itemId)")
+                    // 配列に追加不要、リスナーが反映してくれる
+                    self.navigationController?.popViewController(animated: true)
                 }
             }
         }
-
+    }
 
     
     weak var delegate: ItemAddViewControllerDelegate?
