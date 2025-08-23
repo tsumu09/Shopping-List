@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import UserNotifications
 import CoreLocation
 
 protocol ShopAddViewControllerDelegate: AnyObject {
@@ -19,7 +20,8 @@ class ShopAddViewController: UIViewController, MapViewControllerDelegate {
     var saveDate:UserDefaults = UserDefaults.standard
     var shops: [Shop] = []
     var groupId: String!
-
+    let locationManager = CLLocationManager()
+    
     @IBOutlet weak var shopNameTextField: UITextField!
     
     weak var delegate: ShopAddViewControllerDelegate?

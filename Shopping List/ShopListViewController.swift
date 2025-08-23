@@ -118,28 +118,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                   }
               }
           }
-
-
         
-        let addButton = UIButton()
-           addButton.backgroundColor = .systemBlue
-           addButton.setImage(UIImage(systemName: "plus"), for: .normal)
-           addButton.tintColor = .white
-           addButton.layer.cornerRadius = 30
-           addButton.layer.shadowColor = UIColor.black.cgColor
-           addButton.layer.shadowOpacity = 0.3
-           addButton.layer.shadowOffset = CGSize(width: 0, height: 3)
-           addButton.addTarget(self, action: #selector(addShopButtonTapped), for: .touchUpInside)
-            
-            // view に追加
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(addButton)
-            NSLayoutConstraint.activate([
-                addButton.widthAnchor.constraint(equalToConstant: 60),
-                addButton.heightAnchor.constraint(equalToConstant: 60),
-                addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-                addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
-            ])
+
 
 //        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
 //            granted, error in
@@ -149,6 +129,35 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 //                print("通知の許可がもらえませんでした")
 //            }
 //        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        setupFloatingButton()
+    }
+
+    
+    private func setupFloatingButton() {
+        let addButton = UIButton()
+        addButton.backgroundColor = .systemBlue
+        addButton.setImage(UIImage(systemName: "plus"), for: .normal)
+        addButton.tintColor = .white
+        addButton.layer.cornerRadius = 30
+        addButton.layer.shadowColor = UIColor.black.cgColor
+        addButton.layer.shadowOpacity = 0.3
+        addButton.layer.shadowOffset = CGSize(width: 0, height: 3)
+        addButton.addTarget(self, action: #selector(addShopButtonTapped), for: .touchUpInside)
+        
+        // view に追加
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(addButton)
+        NSLayoutConstraint.activate([
+            addButton.widthAnchor.constraint(equalToConstant: 60),
+            addButton.heightAnchor.constraint(equalToConstant: 60),
+            addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+        ])
+        view.bringSubviewToFront(addButton)
     }
     
     func sendLocalNotification(message: String) {

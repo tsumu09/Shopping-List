@@ -68,39 +68,51 @@ final class FirestoreManager {
             }
         }
     
-    func addItem(to shop: Shop, item: Item) {
-        guard let groupId = SessionManager.shared.groupId else { return }
+    func addItem(to groupId: String,
+                 shopId: String,
+                 name: String,
+                 price: Double,
+                 importance: Int,
+                 detail: String,
+                 completion: @escaping (Result<String, Error>) -> Void) {
         let db = Firestore.firestore()
-        
-        // Item データを追加
+        let itemRef = db.collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .document(shopId)
+            .collection("items")
+            .document()
+
         let itemData: [String: Any] = [
-            "name": item.name,
-            "price": item.price,
+            "name": name,
+            "price": price,
             "isChecked": false,
-            "importance": item.importance,
-            "detail": item.detail,
-            "deadline": item.deadline ?? NSNull(),
-            "requestedBy": item.requestedBy,
+            "importance": importance,
+            "detail": detail,
+            "deadline": NSNull(),
+            "requestedBy": Auth.auth().currentUser?.displayName ?? "誰か",
             "createdAt": Timestamp(date: Date()),
             "buyerIds": []
         ]
-        db.collection("groups")
-          .document(groupId)
-          .collection("shops")
-          .document(shop.id)
-          .collection("items")
-          .document(item.id)
-          .setData(itemData)
-        
-        // 通知を追加
+
+        itemRef.setData(itemData) { error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(itemRef.documentID))
+            }
+        }
+
+        // 通知
         db.collection("groups")
           .document(groupId)
           .collection("notifications")
           .addDocument(data: [
-            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が\(shop.name)に\(item.name)を追加しました",
+            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が商品「\(name)」を追加しました",
             "timestamp": Timestamp(date: Date())
           ])
     }
+
 
 
 
