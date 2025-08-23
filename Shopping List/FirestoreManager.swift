@@ -68,41 +68,41 @@ final class FirestoreManager {
             }
         }
     
-    func addItem(to groupId: String,
-                 shopId: String,
-                 name: String,
-                 price: Double,
-                 importance: Int,
-                 detail: String,
-                 completion: @escaping (Result<String, Error>) -> Void) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-
-        let itemRef = db
-            .collection("groups").document(groupId)
-            .collection("shops").document(shopId)
-            .collection("items").document() // ← Firestore ID
-
-        let itemId = itemRef.documentID
-        let data: [String: Any] = [
-            "id": itemId,
-            "name": name,
-            "price": price,
-            "importance": importance,
-            "requestedBy": uid,
-            "createdAt": Timestamp(),
-            "detail": detail,
+    func addItem(to shop: Shop, item: Item) {
+        guard let groupId = SessionManager.shared.groupId else { return }
+        let db = Firestore.firestore()
+        
+        // Item データを追加
+        let itemData: [String: Any] = [
+            "name": item.name,
+            "price": item.price,
             "isChecked": false,
+            "importance": item.importance,
+            "detail": item.detail,
+            "deadline": item.deadline ?? NSNull(),
+            "requestedBy": item.requestedBy,
+            "createdAt": Timestamp(date: Date()),
             "buyerIds": []
         ]
-
-        itemRef.setData(data) { error in
-            if let error = error {
-                completion(.failure(error))
-            } else {
-                completion(.success(itemId)) // ← ID を返す
-            }
-        }
+        db.collection("groups")
+          .document(groupId)
+          .collection("shops")
+          .document(shop.id)
+          .collection("items")
+          .document(item.id)
+          .setData(itemData)
+        
+        // 通知を追加
+        db.collection("groups")
+          .document(groupId)
+          .collection("notifications")
+          .addDocument(data: [
+            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が\(shop.name)に\(item.name)を追加しました",
+            "timestamp": Timestamp(date: Date())
+          ])
     }
+
+
 
 
 
@@ -403,6 +403,35 @@ final class FirestoreManager {
                     completion(items)
                 }
         }
+    
+    func checkItem(_ item: Item, in shop: Shop) {
+        guard let groupId = SessionManager.shared.groupId else { return }
+        let db = Firestore.firestore()
+        
+        // Item 更新
+        db.collection("groups")
+          .document(groupId)
+          .collection("shops")
+          .document(shop.id)
+          .collection("items")
+          .document(item.id)
+          .updateData([
+            "isChecked": true,
+            "purchasedDate": Timestamp(date: Date()),
+            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser?.uid ?? ""])
+          ])
+        
+        // 通知を追加
+        db.collection("groups")
+          .document(groupId)
+          .collection("notifications")
+          .addDocument(data: [
+            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が\(item.name)を購入しました",
+            "timestamp": Timestamp(date: Date())
+          ])
+    }
+
+
     
 }
 

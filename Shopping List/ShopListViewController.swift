@@ -11,8 +11,6 @@ import UserNotifications
 import FirebaseAuth
 import FirebaseFirestore
 
-let locationManager = CLLocationManager()
-
 
 
 class ShopListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate {
@@ -32,6 +30,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     var items: [Item] = []
     weak var delegate: ItemAddViewControllerDelegate?
     var itemsListener: [String: ListenerRegistration] = [:]
+    let locationManager = CLLocationManager()
+    
     
     private func fetchGroupAndObserve() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -90,8 +90,9 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         print("画面初期化時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
         //        NotificationCenter.default.addObserver(self, selector: #selector(reloadShops), name: Notification.Name("shopsUpdate"), object: nil)
         
-        Shopping_List.locationManager.delegate = self
-        Shopping_List.locationManager.requestAlwaysAuthorization()
+       locationManager.delegate = self
+        locationManager.requestAlwaysAuthorization()
+        locationManager.startUpdatingLocation()
         print("viewDidLoad shops count: \(shops.count)")
             for shop in shops {
                 print("shop: \(shop.name), id: \(shop.id)")
@@ -102,6 +103,24 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             for shop in shops {
                 startItemsListener(for: shop)
             }
+        guard let groupId = SessionManager.shared.groupId else { return }
+        let db = Firestore.firestore()
+
+        db.collection("groups")
+          .document(groupId)
+          .collection("notifications")
+          .addSnapshotListener { snapshot, error in
+              guard let snapshot = snapshot else { return }
+              for diff in snapshot.documentChanges {
+                  if diff.type == .added {
+                      let message = diff.document.data()["message"] as? String ?? ""
+                      self.sendLocalNotification(message: message)
+                  }
+              }
+          }
+
+
+        
         let addButton = UIButton()
            addButton.backgroundColor = .systemBlue
            addButton.setImage(UIImage(systemName: "plus"), for: .normal)
@@ -131,6 +150,23 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 //            }
 //        }
     }
+    
+    func sendLocalNotification(message: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "買い物リスト通知"
+        content.body = message
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // 即時通知
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+
     
     //    @objc func reloadShops() {
     //        if let data = UserDefaults.standard.data(forKey: "shops"),
@@ -348,7 +384,57 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         return 60
     }
     
-   
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            guard let currentLocation = locations.last else { return }
+            checkNearbyShops(currentLocation: currentLocation)
+        }
+    
+    func checkNearbyShops(currentLocation: CLLocation) {
+        guard let groupId = SessionManager.shared.groupId else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("groups")
+          .document(groupId)
+          .collection("shops")
+          .getDocuments { snapshot, error in
+              guard let snapshot = snapshot else { return }
+              
+              for doc in snapshot.documents {
+                  let data = doc.data()
+                  let shopName = data["name"] as? String ?? ""
+                  let lat = data["latitude"] as? Double ?? 0
+                  let lon = data["longitude"] as? Double ?? 0
+                  let shopLocation = CLLocation(latitude: lat, longitude: lon)
+                  
+                  let distance = currentLocation.distance(from: shopLocation) // メートル
+                  
+                  // 例えば 100m以内なら通知
+                  if distance < 100 {
+                      self.notifyForUnpurchasedItems(shopId: doc.documentID, shopName: shopName)
+                  }
+              }
+          }
+    }
+    
+    func notifyForUnpurchasedItems(shopId: String, shopName: String) {
+        guard let groupId = SessionManager.shared.groupId else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("groups")
+          .document(groupId)
+          .collection("shops")
+          .document(shopId)
+          .collection("items")
+          .whereField("isChecked", isEqualTo: false) // 未購入のみ
+          .getDocuments { snapshot, error in
+              guard let snapshot = snapshot else { return }
+              for doc in snapshot.documents {
+                  let itemName = doc.data()["name"] as? String ?? ""
+                  self.sendLocalNotification(message: "\(shopName)に\(itemName)が残っています！")
+              }
+          }
+    }
+
 
     
     //            func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {

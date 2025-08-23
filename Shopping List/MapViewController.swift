@@ -21,6 +21,7 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
     
     var selectedCoordinate: CLLocationCoordinate2D?
     var groupId: String!
+    var shops: [Shop] = []
     let locationManager = CLLocationManager()
     
     override func viewDidLoad() {
@@ -43,12 +44,33 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
     var hasSetIntialRegion = false
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        if !hasSetIntialRegion, let userLocation = locations.first {
-            let region = MKCoordinateRegion(center: userLocation.coordinate, latitudinalMeters: 500, longitudinalMeters: 500)
-            mapView.setRegion(region, animated: true)
-            hasSetIntialRegion = true
+        guard let location = locations.last else { return }
+        
+        for shop in shops {
+            let shopLocation = CLLocation(latitude: shop.latitude, longitude: shop.longitude)
+            let distance = location.distance(from: shopLocation)
+            
+            if distance < 50 { // 50m以内
+                let remainingItems = shop.items.filter { !$0.isChecked }
+                if !remainingItems.isEmpty {
+                    sendLocalNotification(shop: shop, items: remainingItems)
+                }
+            }
         }
     }
+
+    func sendLocalNotification(shop: Shop, items: [Item]) {
+        let content = UNMutableNotificationContent()
+        content.title = "\(shop.name)の買い物リスト"
+        content.body = items.map { $0.name }.joined(separator: ", ") + " がまだ残っています"
+        content.sound = .default
+        
+        let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                            content: content,
+                                            trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
     
     @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
