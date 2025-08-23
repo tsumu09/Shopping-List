@@ -102,7 +102,25 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             for shop in shops {
                 startItemsListener(for: shop)
             }
-
+        let addButton = UIButton()
+           addButton.backgroundColor = .systemBlue
+           addButton.setImage(UIImage(systemName: "plus"), for: .normal)
+           addButton.tintColor = .white
+           addButton.layer.cornerRadius = 30
+           addButton.layer.shadowColor = UIColor.black.cgColor
+           addButton.layer.shadowOpacity = 0.3
+           addButton.layer.shadowOffset = CGSize(width: 0, height: 3)
+           addButton.addTarget(self, action: #selector(addShopButtonTapped), for: .touchUpInside)
+            
+            // view に追加
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(addButton)
+            NSLayoutConstraint.activate([
+                addButton.widthAnchor.constraint(equalToConstant: 60),
+                addButton.heightAnchor.constraint(equalToConstant: 60),
+                addButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+                addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+            ])
 
 //        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) {
 //            granted, error in
@@ -175,7 +193,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // セクションヘッダーで店名を出しているなら「+1しない」→ items.count だけ返す
-        return shops[section].items.count
+        let shop = shops[section]
+            return shop.isExpanded ? shop.items.count : 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -212,7 +231,6 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
-        cell.detailButton.addTarget(self, action: #selector(detailButtonTapped(_:)), for: .touchUpInside)
         return cell
     }
 
@@ -252,14 +270,14 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     }
 
     
-    @IBAction func addShopButtonTapped(_ sender: UIButton) {
+    @objc func addShopButtonTapped() {
         guard let gid = groupId else { return }
         let mapVC = UIStoryboard(name: "Main", bundle: nil)
-            .instantiateViewController(identifier: "ShopAddViewController")
-        as! ShopAddViewController
+            .instantiateViewController(identifier: "ShopAddViewController") as! ShopAddViewController
         mapVC.groupId = gid
         navigationController?.pushViewController(mapVC, animated: true)
     }
+
     
     
     @IBAction func editPositionButtonTapped(_ sender: UIButton) {
@@ -410,8 +428,15 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     @objc func toggleItems(_ sender: UIButton) {
         let section = sender.tag
         shops[section].isExpanded.toggle()
+        
+        // 押されたボタンのアイコンだけ更新
+        let imageName = shops[section].isExpanded ? "chevron.down" : "chevron.forward"
+        sender.setImage(UIImage(systemName: imageName), for: .normal)
+        
+        // そのセクションの rows を更新
         tableView.reloadSections(IndexSet(integer: section), with: .automatic)
     }
+
 
     
     @objc func detailButtonTapped(_ sender: DetailButton) {
@@ -629,10 +654,11 @@ extension ShopListViewController: ShopListItemCellDelegate {
 
     // 3️⃣ 詳細ボタン押下
     func shopListItemCell(_ cell: ShopListItemCell, didTapDetailFor item: Item) {
-        // ここで詳細画面に遷移
-        let vc = ItemListViewController() // 自分の詳細VCに合わせて変更
-        vc.item = item
-        self.navigationController?.pushViewController(vc, animated: true)
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        if let vc = storyboard.instantiateViewController(withIdentifier: "ItemListViewController") as? ItemListViewController {
+            vc.item = item
+            navigationController?.pushViewController(vc, animated: true)
+        }
     }
 }
 

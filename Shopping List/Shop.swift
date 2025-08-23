@@ -14,7 +14,7 @@ struct Shop: Codable {
     var latitude: Double
     var longitude: Double
     var items: [Item] = []
-    var isExpanded: Bool = false
+    var isExpanded: Bool = true
     
     var totalPrice: Double {
            return items.reduce(0) { $0 + $1.price }

@@ -110,15 +110,10 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     
     @IBAction func detailButtonTapped(_ sender: UIButton) {
         // item が存在するかチェック
-        guard let item = item else {
-            print("Error: item が nil です")
-            return
-        }
-
-        // delegate が存在する場合のみ呼び出し
-        delegate?.shopListItemCell(self, didTapDetailFor: item)
-    }
-
+        if let item = self.item {
+               delegate?.shopListItemCell(self, didTapDetailFor: item)
+           }
+       }
 }
 
 extension Notification.Name {

@@ -412,15 +412,6 @@
                                     <outlet property="delegate" destination="BYZ-38-t0r" id="8Mg-z9-dsi"/>
                                 </connections>
                             </tableView>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="BuF-Q0-yMK">
-                                <rect key="frame" x="-6" y="391" width="402" height="62"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="お店を追加"/>
-                                <connections>
-                                    <action selector="addShopButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="9i1-hi-thm"/>
-                                </connections>
-                            </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P1w-9Z-r9D">
                                 <rect key="frame" x="337" y="91" width="53" height="23"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -690,11 +681,11 @@
                     </view>
                     <navigationItem key="navigationItem" id="soa-S6-SXR"/>
                     <connections>
-                        <outlet property="deadlineDatePicker" destination="D40-FW-gLv" id="8bd-un-bfN"/>
-                        <outlet property="detailTextView" destination="CsA-Zi-0bn" id="JTp-p6-kpa"/>
-                        <outlet property="importanceSegment" destination="ci8-6v-rpj" id="zDU-KU-6Wt"/>
-                        <outlet property="nameTextField" destination="qsf-z7-Mam" id="q4h-Dr-XdK"/>
-                        <outlet property="priceTextField" destination="Gb9-kY-3Fj" id="EeO-Nl-Lpo"/>
+                        <outlet property="deadlineDatePicker" destination="D40-FW-gLv" id="4xk-Nc-49m"/>
+                        <outlet property="detailTextView" destination="CsA-Zi-0bn" id="kVt-Jo-9P0"/>
+                        <outlet property="importanceSegment" destination="ci8-6v-rpj" id="iRa-cZ-2xy"/>
+                        <outlet property="nameTextField" destination="qsf-z7-Mam" id="jjZ-qh-OL4"/>
+                        <outlet property="priceTextField" destination="Gb9-kY-3Fj" id="mYg-3k-zmT"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="m1Q-Ed-GfC" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
