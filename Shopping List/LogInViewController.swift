@@ -15,10 +15,9 @@ class LogInViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Do any additional setup after loading the view.
+        LogInButton.layer.cornerRadius = 10
     }
-   
-
+    @IBOutlet weak var LogInButton: UIButton!
     
     @IBOutlet weak var emailField: UITextField!
     @IBOutlet weak var passwordField: UITextField!

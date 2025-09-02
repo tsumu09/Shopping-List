@@ -52,24 +52,31 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
             
             if distance < 50 { // 50m以内
                 let remainingItems = shop.items.filter { !$0.isChecked }
-                if !remainingItems.isEmpty {
-                    sendLocalNotification(shop: shop, items: remainingItems)
+                            for item in remainingItems {
+                                sendLocalNotification(for: item, in: shop)
                 }
             }
         }
     }
 
-    func sendLocalNotification(shop: Shop, items: [Item]) {
+    func sendLocalNotification(for item: Item, in shop: Shop) {
         let content = UNMutableNotificationContent()
-        content.title = "\(shop.name)の買い物リスト"
-        content.body = items.map { $0.name }.joined(separator: ", ") + " がまだ残っています"
+        content.title = "自動追加"
+        content.body = "\(item.name) がリストに自動追加されました"
         content.sound = .default
-        
+
+        // shopId と itemId を userInfo に渡す
+        content.userInfo = [
+            "shopId": shop.id,
+            "itemId": item.id
+        ]
+
         let request = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content,
-                                            trigger: nil)
+                                            trigger: nil) // 即時通知
         UNUserNotificationCenter.current().add(request)
     }
+
 
     
     @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {

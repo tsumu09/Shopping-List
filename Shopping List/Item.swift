@@ -17,8 +17,11 @@ struct Item: Codable, Identifiable {
     var detail: String
     var deadline: Date?
     var requestedBy: String
-    var purchasedDate: Date?
     var buyerIds: [String] = []
+    var purchaseIntervals: [Int] = []        // 購入間隔（日数）
+    var averageInterval: Double?             // 平均購入間隔（日数、小数あり）
+    var purchaseHistory: [Date] = []         // 過去の購入履歴
+    var isAutoAdded: Bool = false
     
     // Firestore の Dictionary から生成するメソッド
     static func fromDictionary(_ dict: [String: Any], id: String) -> Item {
@@ -31,8 +34,15 @@ struct Item: Codable, Identifiable {
         let deadline = deadlineTimestamp?.dateValue()
         let requestedBy = dict["requestedBy"] as? String ?? ""
         let purchasedTimestamp = dict["purchasedDate"] as? Timestamp
-        let purchasedDate = purchasedTimestamp?.dateValue()
         let buyerIds = dict["buyerIds"] as? [String] ?? []
+
+        // Firestore に保存されている purchaseHistory
+        let historyTimestamps = dict["purchaseHistory"] as? [Timestamp] ?? []
+        let purchaseHistory = historyTimestamps.map { $0.dateValue() }
+
+        // Firestore に保存されている購入間隔
+        let purchaseIntervals = dict["purchaseIntervals"] as? [Int] ?? []
+        let averageInterval = dict["averageInterval"] as? Double
 
         return Item(
             id: id,
@@ -43,12 +53,15 @@ struct Item: Codable, Identifiable {
             detail: detail,
             deadline: deadline,
             requestedBy: requestedBy,
-            purchasedDate: purchasedDate,
-            buyerIds: buyerIds
+            buyerIds: buyerIds,
+            purchaseIntervals: purchaseIntervals,
+            averageInterval: averageInterval,
+            purchaseHistory: purchaseHistory
         )
     }
-
 }
+
+
 
 //    init(name: String, price: Int, deadline: Date? = nil, detail: String, importance: Int, id: String, ) {
 //        self.name = name

@@ -31,7 +31,16 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     weak var delegate: ItemAddViewControllerDelegate?
     var itemsListener: [String: ListenerRegistration] = [:]
     let locationManager = CLLocationManager()
-    
+    let autoAddedLabel: UILabel = {
+        let label = UILabel()
+        label.text = "自動追加済みのアイテムがあります"
+        label.textColor = .systemRed
+        label.font = .boldSystemFont(ofSize: 16)
+        label.textAlignment = .center
+        label.isHidden = true  // 通常は非表示
+        return label
+    }()
+
     
     private func fetchGroupAndObserve() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -134,7 +143,53 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         setupFloatingButton()
+        checkAndAddPredictedItems()
+        for shop in shops {
+                autoAddFrequentItems(for: shop)
+            }
+        if let data = UserDefaults.standard.data(forKey: "shops") {
+                                    if let decoded = try? JSONDecoder().decode([Shop].self, from: data) {
+                                        shops = decoded
+                                    } else {
+                                        print("デコードに失敗しました")
+                                    }
+                                } else {
+                                    print("shopsデータが存在しません")
+                                }
+                                tableView.reloadData()
+                        print("画面表示時のSessionManager.shared.groupId = \(SessionManager.shared.groupId ?? "nil or empty")")
+                
+                        fetchGroupAndObserve()
+
     }
+    
+    func autoAddFrequentItems(for shop: Shop) {
+        for item in shop.items {
+            if let avg = item.averageInterval,
+               let last = item.purchaseHistory.last { // 最後に購入した日を取得
+                let nextDate = Calendar.current.date(byAdding: .day, value: Int(avg), to: last)!
+                if nextDate <= Date() && !item.isChecked {
+                    // Firestoreに追加
+                    FirestoreManager.shared.addItem(
+                        to: SessionManager.shared.groupId!,
+                        shopId: shop.id,
+                            name: item.name,
+                            price: item.price,
+                            importance: item.importance,
+                            detail: item.detail
+                    ) { result in
+                        switch result {
+                        case .success(let id):
+                            print("自動追加: \(item.name)")
+                        case .failure(let error):
+                            print("自動追加失敗: \(error)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     
     private func setupFloatingButton() {
@@ -196,6 +251,92 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if let addVC = segue.destination as? ItemAddViewController {
             addVC.shopListVC = self
+        }
+    }
+
+    func calculateAverageInterval(from history: [Date]) -> Int {
+        guard history.count >= 2 else { return 0 }
+        var intervals: [Int] = []
+
+        for i in 1..<history.count {
+            let interval = Calendar.current.dateComponents([.day], from: history[i-1], to: history[i]).day ?? 0
+            intervals.append(interval)
+        }
+
+        let sum = intervals.reduce(0, +)
+        return sum / intervals.count
+    }
+
+
+    func predictNextPurchaseDate(from history: [Date], averageInterval: Double?) -> Date? {
+        guard let lastDate = history.sorted().last else { return nil }
+        let intervalDays = averageInterval ?? 7 // デフォルト1週間
+        return Calendar.current.date(byAdding: .day, value: Int(intervalDays.rounded()), to: lastDate)
+    }
+
+    
+    func checkAndAddPredictedItems() {
+        for section in 0..<shops.count {
+            var shop = shops[section]
+            for row in 0..<shop.items.count {
+                var item = shop.items[row]
+                guard let nextDate = predictNextPurchaseDate(from: item.purchaseHistory, averageInterval: item.averageInterval) else { continue }
+
+                // 今日が予定日
+                if Calendar.current.isDateInToday(nextDate) {
+                    // 自動追加
+                    let now = Date()
+                    item.purchaseHistory.append(now)
+                    item.isAutoAdded = true
+                    shop.items[row] = item
+                    shops[section] = shop
+
+                    // Firestore更新
+                    FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: item)
+
+                    // 通知
+                    sendLocalNotification(title: "自動追加", body: "\(item.name) がリストに自動追加されました")
+                }
+            }
+        }
+        tableView.reloadData()
+    }
+    
+    func sendLocalNotification(title: String = "お知らせ", body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                            content: content,
+                                            trigger: nil) // 即時通知
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func showShopList() {
+        // navigationController の root か ShopListVC を探して push または pop
+        if let shopListVC = navigationController?.viewControllers.first(where: { $0 is ShopListViewController }) {
+            navigationController?.popToViewController(shopListVC, animated: true)
+        } else {
+            let sb = UIStoryboard(name: "Main", bundle: nil)
+            if let shopListVC = sb.instantiateViewController(identifier: "ShopListViewController") as? ShopListViewController {
+                navigationController?.setViewControllers([shopListVC], animated: true)
+            }
+        }
+    }
+
+    
+    func showAutoAddedItem(itemId: String) {
+        // 該当アイテムを配列に追加済みなら
+        if let shopIndex = shops.firstIndex(where: { $0.items.contains(where: { $0.id == itemId }) }),
+           let rowIndex = shops[shopIndex].items.firstIndex(where: { $0.id == itemId }) {
+            
+            // ラベル表示
+            autoAddedLabel.isHidden = false
+            
+            // 必要ならテーブルをスクロール
+            tableView.scrollToRow(at: IndexPath(row: rowIndex, section: shopIndex), at: .top, animated: true)
         }
     }
 
@@ -614,7 +755,6 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                     detail: detail,
                     deadline: deadline,
                     requestedBy: requestedBy,
-                    purchasedDate: purchasedDate,
                     buyerIds: buyerIds
                 )
             }
@@ -700,27 +840,40 @@ extension ShopListViewController: ShopListItemCellDelegate {
 
         var item = shops[section].items[row]
         item.isChecked.toggle()
-        shops[section].items[row] = item
 
+        // ✅ 購入チェックがついたときに購入履歴を更新
+        if item.isChecked {
+            markItemAsPurchased(&item)
+        }
+
+        // ローカルの items を更新
+        shops[section].items[row] = item
         let shop = shops[section]
+
+        // Firestore 保存用の辞書
         let update: [String: Any] = [
             "isChecked": item.isChecked,
-            "purchasedDate": item.isChecked ? Timestamp(date: Date()) : FieldValue.delete()
+            "purchasedDate": item.isChecked ? Timestamp(date: Date()) : FieldValue.delete(),
+            "purchaseHistory": item.purchaseHistory.map { Timestamp(date: $0) },
+            "purchaseIntervals": item.purchaseIntervals,
+            "averageInterval": item.averageInterval ?? 0
         ]
+
         Firestore.firestore()
             .collection("groups").document(groupId)
-               .collection("shops")
-               .document(shop.id)
-               .collection("items")
-               .document(item.id)
-               .updateData(update) { error in
+            .collection("shops").document(shop.id)
+            .collection("items").document(item.id)
+            .updateData(update) { error in
                 if let error = error {
                     print("購入状態更新失敗: \(error)")
+                } else {
+                    print("購入状態更新成功！")
                 }
             }
 
         tableView.reloadRows(at: [IndexPath(row: row, section: section)], with: .automatic)
     }
+
 
     // 2️⃣ 価格変更
     func shopListItemCell(_ cell: ShopListItemCell, didUpdatePrice price: Double, section: Int, row: Int) {
@@ -755,6 +908,25 @@ extension ShopListViewController: ShopListItemCellDelegate {
             navigationController?.pushViewController(vc, animated: true)
         }
     }
+    
+    func markItemAsPurchased(_ item: inout Item) {
+        let today = Date()
+        
+        // 間隔計算
+        if let lastDate = item.purchaseHistory.sorted().last {
+            let interval = Calendar.current.dateComponents([.day], from: lastDate, to: today).day ?? 0
+            if interval > 0 {
+                item.purchaseIntervals.append(interval)
+                let sum = item.purchaseIntervals.reduce(0, +)
+                item.averageInterval = Double(sum) / Double(item.purchaseIntervals.count)
+                item.averageInterval = (item.averageInterval! * 10).rounded() / 10 // 小数1桁
+            }
+        }
+        
+        
+        item.purchaseHistory.append(today)
+    }
+
 }
 
 

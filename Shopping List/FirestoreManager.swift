@@ -29,15 +29,15 @@ final class FirestoreManager {
     
     /// ユーザー登録
     public func insertUser(_ user: FirestoreUser, completion: @escaping (Bool) -> Void) {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            completion(false)
-            return
-        }
-        
-        db.collection("users").document(user.safeEmail).setData([
+        let safeEmail = user.emailAddress.lowercased()
+            .replacingOccurrences(of: ".", with: "-")
+            .replacingOccurrences(of: "@", with: "-")
+
+        db.collection("users").document(safeEmail).setData([
             "first_name": user.firstName,
             "last_name": user.lastName,
-            "email": user.emailAddress
+            "email": user.emailAddress,   // オリジナル
+            "raw_email": user.emailAddress
         ]) { error in
             if let error = error {
                 print("Failed to insert user: \(error.localizedDescription)")
@@ -48,11 +48,22 @@ final class FirestoreManager {
             }
         }
     }
-    
+   
     static func safeEmail(_ email: String) -> String {
-        return email.replacingOccurrences(of: ".", with: "-")
+        return email.lowercased()
+            .replacingOccurrences(of: ".", with: "-")
+            .replacingOccurrences(of: "@", with: "-")
+    }
+
+
+    func makeSafeEmail(from email: String) -> String {
+        return email.lowercased()
+                    .replacingOccurrences(of: ".", with: "-")
                     .replacingOccurrences(of: "@", with: "-")
     }
+
+
+
     
     func addShop(to groupId: String, name: String, latitude: Double, longitude: Double, completion: @escaping (Error?) -> Void) {
             let shopRef = db
@@ -92,7 +103,9 @@ final class FirestoreManager {
             "deadline": NSNull(),
             "requestedBy": Auth.auth().currentUser?.displayName ?? "誰か",
             "createdAt": Timestamp(date: Date()),
-            "buyerIds": []
+            "buyerIds": [], // 初期値は空
+            "purchaseIntervals": [], // 初期値は空
+            "averageInterval": NSNull() // まだ計算できないから null
         ]
 
         itemRef.setData(itemData) { error in
@@ -103,7 +116,7 @@ final class FirestoreManager {
             }
         }
 
-        // 通知
+        // 通知を追加
         db.collection("groups")
           .document(groupId)
           .collection("notifications")
@@ -131,15 +144,38 @@ final class FirestoreManager {
                        .collection("shops").document(shop.id)
                        .collection("items").document(item.id)
 
+        var updatedItem = item
+        let now = Date()
+
+        // 🔹購入日履歴を更新
+        var history = updatedItem.purchaseHistory
+        history.append(now)
+        updatedItem.purchaseHistory = history
+
+        // 🔹購入間隔を計算（2回以上購入していたら）
+        let dates = updatedItem.purchaseHistory.sorted()
+        if dates.count >= 2 {
+            var intervals: [Double] = []
+            for i in 1..<dates.count {
+                let interval = dates[i].timeIntervalSince(dates[i-1]) / (60 * 60 * 24) // 日単位
+                intervals.append(interval)
+            }
+            let avg = intervals.reduce(0, +) / Double(intervals.count)
+            updatedItem.averageInterval = (avg * 10).rounded() / 10 // 小数第1位まで
+        }
+
+
         let data: [String: Any] = [
-            "name": item.name,
-            "price": item.price,
-            "detail": item.detail,
-            "deadline": item.deadline != nil ? Timestamp(date: item.deadline!) : FieldValue.serverTimestamp(),
-            "importance": item.importance,
-            "isChecked": item.isChecked,
-            "buyerIds": item.buyerIds, 
-            "purchasedDate": item.purchasedDate ?? FieldValue.serverTimestamp()
+            "name": updatedItem.name,
+            "price": updatedItem.price,
+            "detail": updatedItem.detail,
+            "deadline": updatedItem.deadline != nil ? Timestamp(date: updatedItem.deadline!) : FieldValue.serverTimestamp(),
+            "importance": updatedItem.importance,
+            "isChecked": updatedItem.isChecked,
+            "buyerIds": updatedItem.buyerIds,
+            "purchaseHistory": updatedItem.purchaseHistory,
+            "purchaseIntervals": updatedItem.purchaseIntervals,
+            "averageInterval": updatedItem.averageInterval ?? 0
         ]
 
         docRef.updateData(data) { error in
@@ -151,6 +187,7 @@ final class FirestoreManager {
             completion?(error)
         }
     }
+    
     /// グループ作成（トランザクションでグループ本体＋メンバー初期追加）
     func createGroup(name: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -262,7 +299,9 @@ final class FirestoreManager {
                                     detail: i["detail"] as? String ?? "",
                                     deadline: i["deadline"] as? Date ?? Date(),
                                     requestedBy: i["requestedBy"] as? String ?? "",
-                                    buyerIds: i["buyerIds"] as? [String] ?? []   // ←追加
+                                    buyerIds: i["buyerIds"] as? [String] ?? [],  // ←追加
+                                    purchaseIntervals: i["purchaseIntervals"] as? [Int] ?? [],
+                                    averageInterval: i["averageInterval"] as? Double ?? 0.0
                                 )
                             } ?? []
                             shops.append(shop)
@@ -300,7 +339,8 @@ final class FirestoreManager {
                     detail: d["detail"] as? String ?? "",
                     deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
                     requestedBy: d["requestedBy"] as? String ?? "",
-                    buyerIds: d["buyerIds"] as? [String] ?? []
+                    purchaseIntervals: d["purchaseIntervals"] as? [Int] ?? [],
+                    averageInterval: d["averageInterval"] as? Double ?? 0.0
                 )
             }
             onUpdate(items)
@@ -346,51 +386,76 @@ final class FirestoreManager {
             }
         }
         
-        // MARK: 招待コードから groupId を探して参加・ユーザードキュメントも更新する
-        func joinGroup(withInviteCode code: String,
-                       completion: @escaping (Result<String, Error>) -> Void) {
-            let ref = db.collection("invites").document(code)
-            ref.getDocument { snap, error in
-                if let e = error { return completion(.failure(e)) }
-                guard let data = snap?.data(),
-                      let groupId = data["groupId"] as? String,
-                      let expiresAt = data["expiresAt"] as? Timestamp
-                else {
+    // MARK: 招待コードから groupId を探して参加・ユーザードキュメントも更新する
+    func joinGroup(withInviteCode code: String,
+                   completion: @escaping (Result<String, Error>) -> Void) {
+
+        let ref = db.collection("invites").document(code)
+        ref.getDocument { snap, error in
+            if let e = error { return completion(.failure(e)) }
+            guard let data = snap?.data(),
+                  let groupId = data["groupId"] as? String,
+                  let expiresAt = data["expiresAt"] as? Timestamp else {
+                return completion(.failure(
+                    NSError(domain:"", code:0,
+                            userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
+                ))
+            }
+
+            // 期限チェック
+            if expiresAt.dateValue() < Date() {
+                return completion(.failure(
+                    NSError(domain:"", code:0,
+                            userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
+                ))
+            }
+
+            guard let email = Auth.auth().currentUser?.email else {
+                return completion(.failure(
+                    NSError(domain:"", code:0,
+                            userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
+                ))
+            }
+
+            let safeEmail = email.replacingOccurrences(of: ".", with: "-")
+                                 .replacingOccurrences(of: "@", with: "-")
+
+            let userDocRef = self.db.collection("users").document(safeEmail)
+            userDocRef.getDocument { snapshot, error in
+                guard let userData = snapshot?.data(),
+                      let firstName = userData["first_name"] as? String else {
                     return completion(.failure(
                         NSError(domain:"", code:0,
-                                userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
+                                userInfo:[NSLocalizedDescriptionKey:"ユーザー情報取得失敗"])
                     ))
                 }
-                // 期限チェック
-                if expiresAt.dateValue() < Date() {
-                    return completion(.failure(
-                        NSError(domain:"", code:0,
-                                userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
-                    ))
-                }
-                // メンバー登録 & users.groupId 更新
-                self.joinGroup(groupId: groupId) { joinErr in
-                    if let joinErr = joinErr {
-                        return completion(.failure(joinErr))
-                    }
-                    guard let uid = Auth.auth().currentUser?.uid else {
-                        return completion(.failure(
-                            NSError(domain:"", code:0,
-                                    userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
-                        ))
-                    }
-                    self.db.collection("users")
-                        .document(uid)
-                        .updateData(["groupId": groupId]) { updErr in
-                            if let updErr = updErr {
-                                completion(.failure(updErr))
-                            } else {
-                                completion(.success(groupId))
-                            }
+
+                // 🔹 pendingMembers に追加する
+                let pendingRef = self.db.collection("groups")
+                                        .document(groupId)
+                                        .collection("pendingMembers")
+                                        .document(safeEmail)
+
+                pendingRef.setData([
+                    "joinedAt": Timestamp(),
+                    "displayName": firstName,
+                    "userDocId": safeEmail
+                ]) { error in
+                    if let error = error {
+                        completion(.failure(error))
+                    } else {
+                        // 🔹 users ドキュメントに groupId を merge
+                        userDocRef.setData(["groupId": groupId], merge: true) { _ in
+                            completion(.success(groupId))
                         }
+                    }
                 }
             }
         }
+    }
+
+
+
     func fetchItems(groupId: String, shop: Shop, completion: @escaping ([Item]) -> Void) {
             let db = Firestore.firestore()
             db.collection("groups")
@@ -453,8 +518,9 @@ struct FirestoreUser {
     let lastName: String
     let emailAddress: String
     var safeEmail: String {
-        FirestoreManager.safeEmail(emailAddress)
+        FirestoreManager.shared.makeSafeEmail(from: emailAddress)
     }
+
 }
 
 extension FirestoreManager {
@@ -471,4 +537,42 @@ extension FirestoreManager {
             completion(names)
         }
     }
-}
+   
+        /// pendingMembers の承認処理
+    func approveMember(safeEmail: String, groupId: String, completion: @escaping (Error?) -> Void) {
+            let pendingRef = db.collection("groups")
+                               .document(groupId)
+                               .collection("pendingMembers")
+                               .document(safeEmail)
+            
+            let memberRef = db.collection("groups")
+                              .document(groupId)
+                              .collection("members")
+                              .document(safeEmail)
+            
+            // pending からデータ取得
+            pendingRef.getDocument { snapshot, error in
+                if let error = error {
+                    completion(error)
+                    return
+                }
+                guard let data = snapshot?.data() else {
+                    completion(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "pending メンバーが存在しません"]))
+                    return
+                }
+                
+                // members に追加
+                memberRef.setData(data) { error in
+                    if let error = error {
+                        completion(error)
+                        return
+                    }
+                    
+                    // pending から削除
+                    pendingRef.delete { error in
+                        completion(error) // 成功なら error = nil
+                    }
+                }
+            }
+        }
+    }

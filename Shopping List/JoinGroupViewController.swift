@@ -38,7 +38,9 @@ class JoinGroupViewController: UIViewController {
         FirestoreManager.shared.joinGroup(withInviteCode: code) { result in
         DispatchQueue.main.async {
           switch result {
-          case .success:
+          case .success(let groupId):
+              SessionManager.shared.groupId = groupId
+              print("新しい groupId をセット:", groupId)
               // HomeTab に切り替え or 画面を閉じてリストをリロード
               let scene = UIApplication.shared.connectedScenes.first as! UIWindowScene
               let delegate = scene.delegate as! SceneDelegate
@@ -49,6 +51,7 @@ class JoinGroupViewController: UIViewController {
           }
         }
       }
+        
     }
     
     private func setLoading(_ loading: Bool) {

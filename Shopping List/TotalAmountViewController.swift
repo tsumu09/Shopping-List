@@ -314,7 +314,7 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             cell.row = indexPath.row - 1
             cell.delegate = self
             cell.buyerLabel.text = item.buyerIds.compactMap { self.userNames[$0] }.joined(separator: ", ")
-
+            cell.configure(with: item)
             
             // ここで購入者の名前を表示
             let buyers = item.buyerIds.compactMap { self.userNames[$0] }
@@ -427,16 +427,8 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
                         try? doc.data(as: Item.self)
                     }
 
-                    // 今月チェック済みアイテムだけフィルター
-                    let checkedItems = allItems.filter { item in
-                        if let purchasedDate = item.purchasedDate {
-                            return item.isChecked &&
-                                   purchasedDate >= startOfMonth &&
-                                   purchasedDate <= endOfMonth
-                        } else {
-                            return false
-                        }
-                    }
+                
+                    let checkedItems = allItems.filter { $0.isChecked }
 
                     // shops 配列に安全に代入
                     if let idx = self.shops.firstIndex(where: { $0.id == shopId }) {
@@ -465,12 +457,14 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             // すでに買った → 削除
             updatedItem.buyerIds.remove(at: index)
             updatedItem.isChecked = !updatedItem.buyerIds.isEmpty
-            updatedItem.purchasedDate = updatedItem.buyerIds.isEmpty ? nil : Date()
+            if updatedItem.buyerIds.isEmpty {
+                       // 削除なら purchaseHistory は変更なし
+                   }
         } else {
             // 新たに購入者追加
             updatedItem.buyerIds.append(uid)
             updatedItem.isChecked = true
-            updatedItem.purchasedDate = Date()
+            updatedItem.purchaseHistory.append(Date())
         }
 
         FirestoreManager.shared.updateItem(groupId: groupId, shop: shop, item: updatedItem) { [weak self] error in

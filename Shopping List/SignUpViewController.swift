@@ -8,11 +8,14 @@
 import UIKit
 import Foundation
 import FirebaseAuth
+import UIKit
+import FirebaseFirestore
 
 class SignUpViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        signUpButton.layer.cornerRadius = 10
     }
     
     @IBOutlet weak var emailTextField: UITextField!
@@ -20,7 +23,7 @@ class SignUpViewController: UIViewController {
     @IBOutlet weak var errorLabel: UILabel!
     @IBOutlet weak var firstNameTextField: UITextField!
     @IBOutlet weak var lastNameTextField: UITextField!
-    
+    @IBOutlet weak var signUpButton: UIButton!
     @IBAction func signUp(){
         guard let email = emailTextField.text, !email.isEmpty,
               let password = passwordTextField.text, !password.isEmpty,
@@ -36,39 +39,50 @@ class SignUpViewController: UIViewController {
                                       preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "はい",
                                       style: .default,
-                                      handler: { _ in
-            FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password, completion: { [weak self]result, error in
-                guard let strongSelf = self else {
-                    return
-                }
-                guard error == nil else {
-                    print("サインアップに失敗しました")
+                                      handler: { [weak self] _ in
+            guard let self = self else { return }
+
+            FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password) { result, error in
+                guard error == nil, let user = result?.user else {
+                    print("サインアップに失敗しました: \(error!.localizedDescription)")
                     return
                 }
                 print("サインインしました")
-                let User = FirestoreUser(firstName: firstName, lastName: lastName, emailAddress: email)
-                // userExists()でFirestoreにすでにユーザー情報(メールアドレス)が保存されていないかチェックする
-                FirestoreManager.shared.userExists(uid: email) { exists in
+
+                // Firestore にユーザー保存
+                let db = Firestore.firestore()
+                let userRef = db.collection("users").document(user.uid)
+                userRef.setData([
+                    "displayName": "\(firstName) \(lastName)", // ←ここで苗字+名前を保存
+                    "email": email
+                ], merge: true)
+
+                // もし FirestoreManager で管理してるなら、ここに組み合わせてもOK
+                let fsUser = FirestoreUser(
+                    firstName: firstName,
+                    lastName: lastName,
+                    emailAddress: email
+                )
+                FirestoreManager.shared.userExists(uid: user.uid) { exists in
                     if exists {
-                        print("メールアドレスがすでに保存されています")
+                        print("ユーザーがすでに存在しています")
                         return
                     }
-                    // insertUser()でFirestoreにユーザー情報を保存する
-                    FirestoreManager.shared.insertUser(User, completion: { success in
+                    FirestoreManager.shared.insertUser(fsUser) { success in
                         if success {
                             print("ユーザー情報の保存が完了しました")
-                            // ここでswitchRootを使ってGroup画面に遷移
-                            guard let self = self else { return }
                             self.switchRoot(to: "GroupNav")
-                            return
                         }
-                    })
+                    }
                 }
-            })
+            }
+
+            
         }))
         alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel, handler: { _ in }))
         present(alert, animated: true)
     }
+
     
     private func switchRoot(to storyboardID: String) {
         DispatchQueue.main.async {

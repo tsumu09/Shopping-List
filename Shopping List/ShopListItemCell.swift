@@ -60,11 +60,11 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
 
     
     @IBAction func checkButtonTapped(_ sender: UIButton) {
-        // まずセル自身の状態を更新（見た目用）
+        // セルの見た目を更新
         isChecked.toggle()
         updateCheckButton()
-
-        // どのセルが押されたかを VC に伝える
+        
+        // VC に「どのセルが押されたか」を伝える
         delegate?.shopListItemCell(self, didToggleCheckAt: section, row: row)
     }
 
@@ -92,12 +92,15 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     private func updateBackgroundColor() {
         switch importance {
         case 3:
-            contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3)// 高
-        case 2:
-            contentView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3) // 中
-        default:
-            contentView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.3) // 低
-        }
+               // 低
+               contentView.backgroundColor = UIColor(red: 0.75, green: 0.90, blue: 0.75, alpha: 1.0)
+           case 2:
+               // 中
+               contentView.backgroundColor = UIColor(red: 0.98, green: 0.95, blue: 0.75, alpha: 1.0)
+           default:
+               // 高
+               contentView.backgroundColor = UIColor(red: 0.98, green: 0.80, blue: 0.80, alpha: 1.0)
+           }
     }
     
     override func prepareForReuse() {
