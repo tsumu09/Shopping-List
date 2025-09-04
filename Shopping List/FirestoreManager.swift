@@ -103,7 +103,7 @@ final class FirestoreManager {
             "deadline": NSNull(),
             "requestedBy": Auth.auth().currentUser?.displayName ?? "誰か",
             "createdAt": Timestamp(date: Date()),
-            "buyerIds": [], // 初期値は空
+            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser!.uid]),
             "purchaseIntervals": [], // 初期値は空
             "averageInterval": NSNull() // まだ計算できないから null
         ]
@@ -173,7 +173,7 @@ final class FirestoreManager {
             "importance": updatedItem.importance,
             "isChecked": updatedItem.isChecked,
             "buyerIds": updatedItem.buyerIds,
-            "purchaseHistory": updatedItem.purchaseHistory,
+            "purchaseHistory": updatedItem.purchaseHistory.map { Timestamp(date: $0) },
             "purchaseIntervals": updatedItem.purchaseIntervals,
             "averageInterval": updatedItem.averageInterval ?? 0
         ]
@@ -292,6 +292,7 @@ final class FirestoreManager {
                             shop.items = itemsSnap?.documents.compactMap { i in
                                 Item(
                                     id: i.documentID,
+                                    shopId: i["shopId"] as? String ?? "",
                                     name: i["name"] as? String ?? "",
                                     price: i["price"] as? Double ?? 0,
                                     isChecked: i["isChecked"] as? Bool ?? false,
@@ -332,6 +333,7 @@ final class FirestoreManager {
             let items = docs.compactMap { d -> Item? in
                 return Item(
                     id: d.documentID,
+                    shopId: d["shopId"] as? String ?? "",
                     name: d["name"] as? String ?? "",
                     price: Double(Int(d["price"] as? Double ?? 0)),
                     isChecked: d["isChecked"] as? Bool ?? false,
@@ -495,7 +497,7 @@ final class FirestoreManager {
           .updateData([
             "isChecked": true,
             "purchasedDate": Timestamp(date: Date()),
-            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser?.uid ?? ""])
+            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser!.uid])
           ])
         
         // 通知を追加

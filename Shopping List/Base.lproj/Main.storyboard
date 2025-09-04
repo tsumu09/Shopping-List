@@ -218,6 +218,7 @@
                         <color key="badgeColor" red="0.99215686270000003" green="0.96470588239999999" blue="0.94117647059999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                     </tabBarItem>
                     <toolbarItems/>
+                    <navigationItem key="navigationItem" id="esb-zU-4fA"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="rO0-ZH-rR1">
                         <rect key="frame" x="0.0" y="47" width="390" height="44"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -283,6 +284,8 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="o1N-Rd-2yz">
                                 <rect key="frame" x="71" y="223" width="249" height="62"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" red="0.4039215686" green="0.26274509800000001" blue="0.28235294119999998" alpha="0.72131105129999995" colorSpace="custom" customColorSpace="displayP3"/>
+                                <color key="tintColor" red="0.99215686270000003" green="0.96470588239999999" blue="0.94117647059999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="グループ作成">
                                     <fontDescription key="titleFontDescription" type="system" pointSize="40"/>
@@ -294,6 +297,8 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7KG-HM-7Mi">
                                 <rect key="frame" x="72" y="482" width="249" height="62"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" red="0.4039215686" green="0.26274509800000001" blue="0.28235294119999998" alpha="0.68568915559999999" colorSpace="custom" customColorSpace="displayP3"/>
+                                <color key="tintColor" red="0.99215686270000003" green="0.96470588239999999" blue="0.94117647059999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="グループ参加">
                                     <fontDescription key="titleFontDescription" type="system" pointSize="40"/>
@@ -303,12 +308,15 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bmd-0j-hoz">
-                                <rect key="frame" x="100" y="634" width="193" height="38"/>
+                                <rect key="frame" x="99" y="761" width="193" height="38"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="あとでグループ作成">
                                     <fontDescription key="titleFontDescription" type="system" pointSize="20"/>
                                 </buttonConfiguration>
+                                <connections>
+                                    <segue destination="DzO-qs-NMf" kind="show" id="vX8-rW-QBt"/>
+                                </connections>
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="QrN-U3-vVX"/>
@@ -335,12 +343,6 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="sm2-hZ-krP">
-                                <rect key="frame" x="57" y="288" width="277" height="34"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                <textInputTraits key="textInputTraits"/>
-                            </textField>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="e90-aw-TXw">
                                 <rect key="frame" x="248" y="576" width="99" height="62"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -352,6 +354,12 @@
                                     <action selector="joinTapped:" destination="Zj3-9x-sdC" eventType="touchUpInside" id="kEW-4H-Vpy"/>
                                 </connections>
                             </button>
+                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="sm2-hZ-krP">
+                                <rect key="frame" x="57" y="303" width="277" height="34"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits"/>
+                            </textField>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="a54-A8-glG"/>
                         <color key="backgroundColor" red="0.99215686270000003" green="0.96470588239999999" blue="0.94117647059999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
@@ -364,7 +372,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="qef-SQ-LDg" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1763.0769230769231" y="-717.29857819905214"/>
+            <point key="canvasLocation" x="1762" y="-707"/>
         </scene>
         <!--Create Group View Controller-->
         <scene sceneID="FDy-Yi-BFP">
@@ -417,7 +425,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="9wA-Y2-jwu" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="834" y="-1415"/>
+            <point key="canvasLocation" x="1762" y="-1415"/>
         </scene>
         <!--Shop Add View Controller-->
         <scene sceneID="wTq-1R-SGS">
@@ -1150,7 +1158,6 @@
                         <outlet property="emailField" destination="EcM-hg-JEQ" id="kHS-bS-3Nb"/>
                         <outlet property="errorLabel" destination="cJX-op-yls" id="7hp-FH-M9A"/>
                         <outlet property="passwordField" destination="Hth-xm-QoR" id="CDA-Ic-6qc"/>
-                        <outlet property="toSignUpVCButton" destination="lIc-lX-bAa" id="cFl-lg-3mk"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Sn0-Mw-Gbo" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -1214,6 +1221,9 @@
             <point key="canvasLocation" x="-4385" y="-706"/>
         </scene>
     </scenes>
+    <inferredMetricsTieBreakers>
+        <segue reference="vX8-rW-QBt"/>
+    </inferredMetricsTieBreakers>
     <resources>
         <image name="circle" catalog="system" width="128" height="123"/>
         <image name="house" catalog="system" width="128" height="104"/>

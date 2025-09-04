@@ -748,6 +748,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
 
                 return Item(
                     id: id,
+                    shopId: shop.id,
+                    
                     name: name,
                     price: price,
                     isChecked: isChecked,
@@ -766,7 +768,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
             if let index = self.shops.firstIndex(where: { $0.id == shop.id }) {
                 self.shops[index].items = updatedItems
                 DispatchQueue.main.async {
-                    self.tableView.reloadData()  // ← これで安全
+                    self.tableView.reloadData()
                 }
             }
 

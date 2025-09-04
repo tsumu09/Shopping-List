@@ -10,6 +10,7 @@ import FirebaseFirestore
 
 struct Item: Codable, Identifiable {
     var id: String
+    var shopId: String
     var name: String
     var price: Double
     var isChecked: Bool = false
@@ -35,7 +36,7 @@ struct Item: Codable, Identifiable {
         let requestedBy = dict["requestedBy"] as? String ?? ""
         let purchasedTimestamp = dict["purchasedDate"] as? Timestamp
         let buyerIds = dict["buyerIds"] as? [String] ?? []
-
+        let shopId = dict["shopId"] as? String ?? ""
         // Firestore に保存されている purchaseHistory
         let historyTimestamps = dict["purchaseHistory"] as? [Timestamp] ?? []
         let purchaseHistory = historyTimestamps.map { $0.dateValue() }
@@ -46,6 +47,7 @@ struct Item: Codable, Identifiable {
 
         return Item(
             id: id,
+            shopId: shopId,
             name: name,
             price: price,
             isChecked: isChecked,

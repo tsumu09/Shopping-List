@@ -47,11 +47,11 @@ class TotalAmountItemCell: UITableViewCell, UITextFieldDelegate {
             for uid in item.buyerIds {
                 group.enter()
                 db.collection("users").document(uid).getDocument { snapshot, error in
-                    if let data = snapshot?.data(),
-                       let name = data["displayName"] as? String {
-                        names.append(name)
+                    defer { group.leave() }
+                    guard let data = snapshot?.data() else { return }
+                    if let firstName = data["firstName"] as? String {
+                        names.append(firstName)
                     }
-                    group.leave()
                 }
             }
 
@@ -60,5 +60,6 @@ class TotalAmountItemCell: UITableViewCell, UITextFieldDelegate {
             }
         }
     }
+
 
 }
