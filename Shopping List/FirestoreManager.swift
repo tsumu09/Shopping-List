@@ -9,6 +9,7 @@ import Foundation
 import FirebaseFirestore
 import FirebaseAuth
 
+
 final class FirestoreManager {
     static let shared = FirestoreManager()
     private let db = Firestore.firestore()
@@ -32,7 +33,7 @@ final class FirestoreManager {
         let safeEmail = user.emailAddress.lowercased()
             .replacingOccurrences(of: ".", with: "-")
             .replacingOccurrences(of: "@", with: "-")
-
+        
         db.collection("users").document(safeEmail).setData([
             "first_name": user.firstName,
             "last_name": user.lastName,
@@ -48,36 +49,36 @@ final class FirestoreManager {
             }
         }
     }
-   
+    
     static func safeEmail(_ email: String) -> String {
         return email.lowercased()
             .replacingOccurrences(of: ".", with: "-")
             .replacingOccurrences(of: "@", with: "-")
     }
-
-
+    
+    
     func makeSafeEmail(from email: String) -> String {
         return email.lowercased()
-                    .replacingOccurrences(of: ".", with: "-")
-                    .replacingOccurrences(of: "@", with: "-")
+            .replacingOccurrences(of: ".", with: "-")
+            .replacingOccurrences(of: "@", with: "-")
     }
-
-
-
+    
+    
+    
     
     func addShop(to groupId: String, name: String, latitude: Double, longitude: Double, completion: @escaping (Error?) -> Void) {
-            let shopRef = db
-                .collection("groups").document(groupId)
-                .collection("shops").document()
-            let data: [String: Any] = [
-                "name": name,
-                "latitude": latitude,
-                "longitude": longitude
-            ]
-            shopRef.setData(data) { error in
-                completion(error)
-            }
+        let shopRef = db
+            .collection("groups").document(groupId)
+            .collection("shops").document()
+        let data: [String: Any] = [
+            "name": name,
+            "latitude": latitude,
+            "longitude": longitude
+        ]
+        shopRef.setData(data) { error in
+            completion(error)
         }
+    }
     
     func addItem(to groupId: String,
                  shopId: String,
@@ -93,11 +94,12 @@ final class FirestoreManager {
             .document(shopId)
             .collection("items")
             .document()
-
+        
         let itemData: [String: Any] = [
             "name": name,
             "price": price,
             "isChecked": false,
+            "groupId": groupId,
             "importance": importance,
             "detail": detail,
             "deadline": NSNull(),
@@ -107,7 +109,7 @@ final class FirestoreManager {
             "purchaseIntervals": [], // 初期値は空
             "averageInterval": NSNull() // まだ計算できないから null
         ]
-
+        
         itemRef.setData(itemData) { error in
             if let error = error {
                 completion(.failure(error))
@@ -115,43 +117,43 @@ final class FirestoreManager {
                 completion(.success(itemRef.documentID))
             }
         }
-
+        
         // 通知を追加
         db.collection("groups")
-          .document(groupId)
-          .collection("notifications")
-          .addDocument(data: [
-            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が商品「\(name)」を追加しました",
-            "timestamp": Timestamp(date: Date())
-          ])
+            .document(groupId)
+            .collection("notifications")
+            .addDocument(data: [
+                "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が商品「\(name)」を追加しました",
+                "timestamp": Timestamp(date: Date())
+            ])
     }
-
-
-
-
-
-
     
-
+    
+    
+    
+    
+    
+    
+    
     func updateItem(groupId: String, shop: Shop, item: Item, completion: ((Error?) -> Void)? = nil) {
-        guard !item.id.isEmpty else {
+        guard let itemId = item.id, !itemId.isEmpty else {
             print("Error: item.id が空です。Firestore更新を中止します。")
             completion?(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "item.id is empty"]))
             return
         }
-
+        
         let docRef = db.collection("groups").document(groupId)
-                       .collection("shops").document(shop.id)
-                       .collection("items").document(item.id)
-
+            .collection("shops").document(shop.id)
+            .collection("items").document(itemId)
+        
         var updatedItem = item
         let now = Date()
-
+        
         // 🔹購入日履歴を更新
         var history = updatedItem.purchaseHistory
         history.append(now)
         updatedItem.purchaseHistory = history
-
+        
         // 🔹購入間隔を計算（2回以上購入していたら）
         let dates = updatedItem.purchaseHistory.sorted()
         if dates.count >= 2 {
@@ -163,8 +165,8 @@ final class FirestoreManager {
             let avg = intervals.reduce(0, +) / Double(intervals.count)
             updatedItem.averageInterval = (avg * 10).rounded() / 10 // 小数第1位まで
         }
-
-
+        
+        
         let data: [String: Any] = [
             "name": updatedItem.name,
             "price": updatedItem.price,
@@ -177,7 +179,7 @@ final class FirestoreManager {
             "purchaseIntervals": updatedItem.purchaseIntervals,
             "averageInterval": updatedItem.averageInterval ?? 0
         ]
-
+        
         docRef.updateData(data) { error in
             if let error = error {
                 print("Firestore 更新エラー: \(error.localizedDescription)")
@@ -210,111 +212,120 @@ final class FirestoreManager {
             } else {
                 
                 let shopRef = groupRef.collection("shops").document()
-                            let shopData: [String: Any] = [
-                                "name": "最初のお店",
-                                "latitude": 0.0,
-                                "longitude": 0.0,
-                                "createdAt": Timestamp()
-                            ]
-                            shopRef.setData(shopData) { shopError in
-                                if let shopError = shopError {
-                                    print("初期ショップ追加失敗: \(shopError.localizedDescription)")
-                                } else {
-                                    print("初期ショップ追加成功")
-                                }
-                            }
+                let shopData: [String: Any] = [
+                    "name": "最初のお店",
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "createdAt": Timestamp()
+                ]
+                shopRef.setData(shopData) { shopError in
+                    if let shopError = shopError {
+                        print("初期ショップ追加失敗: \(shopError.localizedDescription)")
+                    } else {
+                        print("初期ショップ追加成功")
+                    }
+                }
                 completion(.success(groupRef.documentID))
             }
         }
     }
-
+    
     func fetchItem(shopId: String, itemId: String, completion: @escaping (Item?) -> Void) {
-            guard let groupId = SessionManager.shared.groupId else {
-                completion(nil)
-                return
-            }
-
-            db.collection("groups")
-                .document(groupId)
-                .collection("shops")
-                .document(shopId)
-                .collection("items")
-                .document(itemId)
-                .getDocument { snapshot, error in
-                    if let error = error {
-                        print("アイテム取得失敗: \(error)")
-                        completion(nil)
-                        return
-                    }
-
-                    guard let data = snapshot?.data() else {
-                        completion(nil)
-                        return
-                    }
-
-                    // Item を Firestore データから生成
-                    let item = Item.fromDictionary(data, id: itemId)
-                    completion(item)
-                }
+        guard let groupId = SessionManager.shared.groupId else {
+            completion(nil)
+            return
         }
+        
+        db.collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .document(shopId)
+            .collection("items")
+            .document(itemId)
+            .getDocument { snapshot, error in
+                if let error = error {
+                    print("アイテム取得失敗: \(error)")
+                    completion(nil)
+                    return
+                }
+                
+                guard let data = snapshot?.data() else {
+                    completion(nil)
+                    return
+                }
+                
+                // Item を Firestore データから生成
+                let item = Item.fromDictionary(data, id: itemId)
+                completion(item)
+            }
+    }
     
     func observeShops(in groupId: String,
-                          onUpdate: @escaping ([Shop]) -> Void) -> ListenerRegistration {
-            let shopsRef = db
-                .collection("groups").document(groupId)
-                .collection("shops")
-            return shopsRef.addSnapshotListener { snap, _ in
-                guard let docs = snap?.documents else { return }
-                var shops: [Shop] = []
-                let dg = DispatchGroup()
+                      onUpdate: @escaping ([Shop]) -> Void) -> ListenerRegistration {
+        let shopsRef = db
+            .collection("groups").document(groupId)
+            .collection("shops")
+        return shopsRef.addSnapshotListener { snap, _ in
+            guard let docs = snap?.documents else { return }
+            var shops: [Shop] = []
+            let dg = DispatchGroup()
+            
+            for d in docs {
+                // フィールドから位置情報を取得
+                let lat = d["latitude"] as? Double ?? 0
+                let lng = d["longitude"] as? Double ?? 0
                 
-                for d in docs {
-                    // フィールドから位置情報を取得
-                    let lat = d["latitude"] as? Double ?? 0
-                    let lng = d["longitude"] as? Double ?? 0
-                    
-                    // 空の items で初期化
-                    var shop = Shop(
-                        id: d.documentID,
-                        name: d["name"] as? String ?? "",
-                        latitude: lat,
-                        longitude: lng,
-                        items: []
-                    )
-                    
-                    dg.enter()
-                    self.db
-                        .collection("groups").document(groupId)
-                        .collection("shops").document(d.documentID)
-                        .collection("items")
-                        .order(by: "importance", descending: true)
-                        .getDocuments { itemsSnap, _ in
-                            shop.items = itemsSnap?.documents.compactMap { i in
-                                Item(
-                                    id: i.documentID,
-                                    shopId: i["shopId"] as? String ?? "",
-                                    name: i["name"] as? String ?? "",
-                                    price: i["price"] as? Double ?? 0,
-                                    isChecked: i["isChecked"] as? Bool ?? false,
-                                    importance: i["importance"] as? Int ?? 0,
-                                    detail: i["detail"] as? String ?? "",
-                                    deadline: i["deadline"] as? Date ?? Date(),
-                                    requestedBy: i["requestedBy"] as? String ?? "",
-                                    buyerIds: i["buyerIds"] as? [String] ?? [],  // ←追加
-                                    purchaseIntervals: i["purchaseIntervals"] as? [Int] ?? [],
-                                    averageInterval: i["averageInterval"] as? Double ?? 0.0
-                                )
-                            } ?? []
-                            shops.append(shop)
-                            dg.leave()
-                        }
-                }
+                // 空の items で初期化
+                var shop = Shop(
+                    id: d.documentID,
+                    name: d["name"] as? String ?? "",
+                    latitude: lat,
+                    longitude: lng,
+                    items: []
+                )
                 
-                dg.notify(queue: .main) {
-                    onUpdate(shops)
-                }
+                dg.enter()
+                self.db
+                    .collection("groups").document(groupId)
+                    .collection("shops").document(d.documentID)
+                    .collection("items")
+                    .order(by: "importance", descending: true)
+                    .getDocuments { itemsSnap, _ in
+                        shop.items = itemsSnap?.documents.compactMap { i in
+                            let data = i.data()
+                            let priceNumber = data["price"] as? NSNumber
+                            let price = priceNumber?.doubleValue ?? 0
+                            let deadline = (data["deadline"] as? Timestamp)?.dateValue()
+                            let rawIntervals = data["purchaseIntervals"] as? [Double] ?? []
+                            let purchaseIntervals = (data["purchaseIntervals"] as? [Double] ?? []).map { Int($0) }
+                            
+                            return Item(
+                                id: i.documentID,
+                                shopId: data["shopId"] as? String ?? "",
+                                name: data["name"] as? String ?? "",
+                                price: price,
+                                isChecked: data["isChecked"] as? Bool ?? false,
+                                importance: data["importance"] as? Int ?? 0,
+                                detail: data["detail"] as? String ?? "",
+                                deadline: deadline,
+                                requestedBy: data["requestedBy"] as? String ?? "",
+                                buyerIds: data["buyerIds"] as? [String] ?? [],
+                                purchaseIntervals: purchaseIntervals,
+                                averageInterval: data["averageInterval"] as? Double ?? 0.0,
+                                groupId: groupId
+                            )
+                        } ?? []
+
+                        shops.append(shop)
+                        dg.leave()
+                    }
+            }
+            
+            dg.notify(queue: .main) {
+                onUpdate(shops)
             }
         }
+    }
     
     func observeItems(in groupId: String, shopId: String, onUpdate: @escaping ([Item]) -> Void) -> ListenerRegistration {
         let itemsRef = db
@@ -322,76 +333,92 @@ final class FirestoreManager {
             .collection("shops").document(shopId)
             .collection("items")
             .order(by: "importance", descending: true)  // 並び順も指定できる
-
+        
         return itemsRef.addSnapshotListener { snapshot, error in
             guard let docs = snapshot?.documents else {
                 print("itemsの取得失敗 or なし")
                 onUpdate([])
                 return
             }
-
+            
             let items = docs.compactMap { d -> Item? in
+                let data = d.data()
+                
+                let priceNumber = data["price"] as? NSNumber
+                let price = priceNumber?.doubleValue ?? 0
+                
+                let deadlineTimestamp = data["deadline"] as? Timestamp
+                let deadline = (data["deadline"] as? Timestamp)?.dateValue()
+                
+                let rawIntervals = data["purchaseIntervals"] as? [Double] ?? []
+                let purchaseIntervals = (data["purchaseIntervals"] as? [Double] ?? []).map { Int($0) }
+
+
+                
                 return Item(
                     id: d.documentID,
-                    shopId: d["shopId"] as? String ?? "",
-                    name: d["name"] as? String ?? "",
-                    price: Double(Int(d["price"] as? Double ?? 0)),
-                    isChecked: d["isChecked"] as? Bool ?? false,
-                    importance: d["importance"] as? Int ?? 0,
-                    detail: d["detail"] as? String ?? "",
-                    deadline: (d["deadline"] as? Timestamp)?.dateValue() ?? Date(),
-                    requestedBy: d["requestedBy"] as? String ?? "",
-                    purchaseIntervals: d["purchaseIntervals"] as? [Int] ?? [],
-                    averageInterval: d["averageInterval"] as? Double ?? 0.0
+                    shopId: data["shopId"] as? String ?? "",
+                    name: data["name"] as? String ?? "",
+                    price: price,
+                    isChecked: data["isChecked"] as? Bool ?? false,
+                    importance: data["importance"] as? Int ?? 0,
+                    detail: data["detail"] as? String ?? "",
+                    deadline: deadline,
+                    requestedBy: data["requestedBy"] as? String ?? "",
+                    buyerIds: data["buyerIds"] as? [String] ?? [],
+                    purchaseIntervals: purchaseIntervals,
+                    averageInterval: data["averageInterval"] as? Double ?? 0.0,
+                    groupId: groupId
                 )
             }
+
             onUpdate(items)
         }
     }
-
+    
     
     // MARK: ランダム英数字コードを生成し、group/{groupId}/invites/{code} ドキュメントに
-        // expiresAt (有効期限) をセットする
-        func generateInviteCode(
-            for groupId: String,
-            validFor minutes: Int = 10,
-            completion: @escaping (Result<String, Error>) -> Void
-        ) {
-            let code = randomString(length: 6)
-            let expiresAt = Timestamp(date: Date().addingTimeInterval(TimeInterval(minutes * 60)))
-            let inviteRef = db.collection("invites").document(code)
-            let data: [String: Any] = [
-                "groupId": groupId,
-                "expiresAt": expiresAt
-            ]
-            inviteRef.setData(data) { error in
-                if let e = error { completion(.failure(e)) }
-                else           { completion(.success(code)) }
-            }
+    // expiresAt (有効期限) をセットする
+    func generateInviteCode(
+        for groupId: String,
+        validFor minutes: Int = 10,
+        completion: @escaping (Result<String, Error>) -> Void
+    ) {
+        let code = randomString(length: 6)
+        let expiresAt = Timestamp(date: Date().addingTimeInterval(TimeInterval(minutes * 60)))
+        let inviteRef = db.collection("invites").document(code)
+        let data: [String: Any] = [
+            "groupId": groupId,
+            "expiresAt": expiresAt
+        ]
+        inviteRef.setData(data) { error in
+            if let e = error { completion(.failure(e)) }
+            else           { completion(.success(code)) }
         }
-        
-        
-        // 英数字ランダム生成ヘルパー
-        private func randomString(length: Int) -> String {
-            let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-            return String((0..<length).map { _ in chars.randomElement()! })
+    }
+    
+    
+    // 英数字ランダム生成ヘルパー
+    private func randomString(length: Int) -> String {
+        let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        return String((0..<length).map { _ in chars.randomElement()! })
+    }
+    
+    // MARK: — グループ参加
+    func joinGroup(groupId: String, completion: @escaping (Error?) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let memberRef = db
+            .collection("groups").document(groupId)
+            .collection("members").document(uid)
+        memberRef.setData(["joinedAt": Timestamp(), "displayName": Auth.auth().currentUser?.displayName ?? ""]) { error in
+            completion(error)
         }
-        
-        // MARK: — グループ参加
-        func joinGroup(groupId: String, completion: @escaping (Error?) -> Void) {
-            guard let uid = Auth.auth().currentUser?.uid else { return }
-            let memberRef = db
-                .collection("groups").document(groupId)
-                .collection("members").document(uid)
-            memberRef.setData(["joinedAt": Timestamp(), "displayName": Auth.auth().currentUser?.displayName ?? ""]) { error in
-                completion(error)
-            }
-        }
-        
+    }
+    
     // MARK: 招待コードから groupId を探して参加・ユーザードキュメントも更新する
     func joinGroup(withInviteCode code: String,
                    completion: @escaping (Result<String, Error>) -> Void) {
-
+        
         let ref = db.collection("invites").document(code)
         ref.getDocument { snap, error in
             if let e = error { return completion(.failure(e)) }
@@ -403,7 +430,7 @@ final class FirestoreManager {
                             userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
                 ))
             }
-
+            
             // 期限チェック
             if expiresAt.dateValue() < Date() {
                 return completion(.failure(
@@ -411,17 +438,17 @@ final class FirestoreManager {
                             userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
                 ))
             }
-
+            
             guard let email = Auth.auth().currentUser?.email else {
                 return completion(.failure(
                     NSError(domain:"", code:0,
                             userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
                 ))
             }
-
+            
             let safeEmail = email.replacingOccurrences(of: ".", with: "-")
-                                 .replacingOccurrences(of: "@", with: "-")
-
+                .replacingOccurrences(of: "@", with: "-")
+            
             let userDocRef = self.db.collection("users").document(safeEmail)
             userDocRef.getDocument { snapshot, error in
                 guard let userData = snapshot?.data(),
@@ -431,13 +458,13 @@ final class FirestoreManager {
                                 userInfo:[NSLocalizedDescriptionKey:"ユーザー情報取得失敗"])
                     ))
                 }
-
+                
                 // 🔹 pendingMembers に追加する
                 let pendingRef = self.db.collection("groups")
-                                        .document(groupId)
-                                        .collection("pendingMembers")
-                                        .document(safeEmail)
-
+                    .document(groupId)
+                    .collection("pendingMembers")
+                    .document(safeEmail)
+                
                 pendingRef.setData([
                     "joinedAt": Timestamp(),
                     "displayName": firstName,
@@ -455,65 +482,64 @@ final class FirestoreManager {
             }
         }
     }
-
-
-
+    
+    
+    
     func fetchItems(groupId: String, shop: Shop, completion: @escaping ([Item]) -> Void) {
-            let db = Firestore.firestore()
-            db.collection("groups")
-                .document(groupId)
-                .collection("shops")
-                .document(shop.id)
-                .collection("items")
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("商品取得失敗: \(error.localizedDescription)")
-                        completion([])
-                        return
-                    }
-
-                    var items: [Item] = []
-                    snapshot?.documents.forEach { doc in
-                        if let item = try? doc.data(as: Item.self) {
-                            items.append(item)
-                        }
-                    }
-
-                    completion(items)
+        let db = Firestore.firestore()
+        db.collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .document(shop.id)
+            .collection("items")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("商品取得失敗: \(error.localizedDescription)")
+                    completion([])
+                    return
                 }
-        }
+                
+                var items: [Item] = []
+                snapshot?.documents.forEach { doc in
+                    let item = Item.fromDictionary(doc.data(), id: doc.documentID)
+                    items.append(item)
+                }
+
+                
+                completion(items)
+            }
+    }
     
     func checkItem(_ item: Item, in shop: Shop) {
         guard let groupId = SessionManager.shared.groupId else { return }
+            let shopId = shop.id          // ←そのままでOK
+            guard let itemId = item.id else { return }
+        
         let db = Firestore.firestore()
         
         // Item 更新
         db.collection("groups")
-          .document(groupId)
-          .collection("shops")
-          .document(shop.id)
-          .collection("items")
-          .document(item.id)
-          .updateData([
-            "isChecked": true,
-            "purchasedDate": Timestamp(date: Date()),
-            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser!.uid])
-          ])
+            .document(groupId)
+            .collection("shops")
+            .document(shopId)
+            .collection("items")
+            .document(itemId)
+            .updateData([
+                "isChecked": true,
+                "purchasedDate": Timestamp(date: Date()),
+                "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser!.uid])
+            ])
         
         // 通知を追加
         db.collection("groups")
-          .document(groupId)
-          .collection("notifications")
-          .addDocument(data: [
-            "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が\(item.name)を購入しました",
-            "timestamp": Timestamp(date: Date())
-          ])
+            .document(groupId)
+            .collection("notifications")
+            .addDocument(data: [
+                "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が\(item.name)を購入しました",
+                "timestamp": Timestamp(date: Date())
+            ])
     }
-
-
-    
 }
-
 // ユーザーモデル
 struct FirestoreUser {
     let firstName: String

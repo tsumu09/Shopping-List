@@ -4,76 +4,66 @@
 //
 //  Created by 高橋紬季 on 2025/05/07.
 //
-
 import Foundation
 import FirebaseFirestore
 
 struct Item: Codable, Identifiable {
-    var id: String
+    @DocumentID var id: String?            // Firestore の documentID
     var shopId: String
     var name: String
     var price: Double
     var isChecked: Bool = false
     var importance: Int
     var detail: String
-    var deadline: Date?
+    var deadline: Date?                     // Optional
     var requestedBy: String
     var buyerIds: [String] = []
-    var purchaseIntervals: [Int] = []        // 購入間隔（日数）
-    var averageInterval: Double?             // 平均購入間隔（日数、小数あり）
-    var purchaseHistory: [Date] = []         // 過去の購入履歴
+    var purchaseIntervals: [Int] = []
+    var averageInterval: Double?
+    var purchaseHistory: [Date] = []
     var isAutoAdded: Bool = false
-    
-    // Firestore の Dictionary から生成するメソッド
-    static func fromDictionary(_ dict: [String: Any], id: String) -> Item {
-        let name = dict["name"] as? String ?? ""
-        let price = dict["price"] as? Double ?? 0
-        let isChecked = dict["isChecked"] as? Bool ?? false
-        let importance = dict["importance"] as? Int ?? 0
-        let detail = dict["detail"] as? String ?? ""
-        let deadlineTimestamp = dict["deadline"] as? Timestamp
-        let deadline = deadlineTimestamp?.dateValue()
-        let requestedBy = dict["requestedBy"] as? String ?? ""
-        let purchasedTimestamp = dict["purchasedDate"] as? Timestamp
-        let buyerIds = dict["buyerIds"] as? [String] ?? []
-        let shopId = dict["shopId"] as? String ?? ""
-        // Firestore に保存されている purchaseHistory
-        let historyTimestamps = dict["purchaseHistory"] as? [Timestamp] ?? []
-        let purchaseHistory = historyTimestamps.map { $0.dateValue() }
+    var groupId: String
 
-        // Firestore に保存されている購入間隔
-        let purchaseIntervals = dict["purchaseIntervals"] as? [Int] ?? []
-        let averageInterval = dict["averageInterval"] as? Double
-
-        return Item(
-            id: id,
-            shopId: shopId,
-            name: name,
-            price: price,
-            isChecked: isChecked,
-            importance: importance,
-            detail: detail,
-            deadline: deadline,
-            requestedBy: requestedBy,
-            buyerIds: buyerIds,
-            purchaseIntervals: purchaseIntervals,
-            averageInterval: averageInterval,
-            purchaseHistory: purchaseHistory
-        )
+    // デフォルト値付きで、Firestore の欠けたフィールドも安全にデコード
+    enum CodingKeys: String, CodingKey {
+        case id
+        case shopId
+        case name
+        case price
+        case isChecked
+        case importance
+        case detail
+        case deadline
+        case requestedBy
+        case buyerIds
+        case purchaseIntervals
+        case averageInterval
+        case purchaseHistory
+        case isAutoAdded
+        case groupId
     }
 }
+extension Item {
+    static func fromDictionary(_ data: [String: Any], id: String) -> Item {
+        let rawIntervals = data["purchaseIntervals"] as? [Double] ?? []
+        let intervals = rawIntervals.map { Int($0) }
+        let deadline = (data["deadline"] as? Timestamp)?.dateValue()
+        
+        return Item(
+            id: id,
+            shopId: data["shopId"] as? String ?? "",
+            name: data["name"] as? String ?? "",
+            price: data["price"] as? Double ?? 0,
+            isChecked: data["isChecked"] as? Bool ?? false,
+            importance: data["importance"] as? Int ?? 0,
+            detail: data["detail"] as? String ?? "",
+            deadline: deadline,
+            requestedBy: data["requestedBy"] as? String ?? "",
+            buyerIds: data["buyerIds"] as? [String] ?? [],
+            purchaseIntervals: intervals,
+            averageInterval: data["averageInterval"] as? Double ?? 0,
+            groupId: data["groupId"] as? String ?? ""
+        )
+    }
 
-
-
-//    init(name: String, price: Int, deadline: Date? = nil, detail: String, importance: Int, id: String, ) {
-//        self.name = name
-//        self.price = price
-//        self.deadline = deadline
-//        self.detail = detail
-//        self.importance = importance
-//    }
-
-
-
-
-
+}

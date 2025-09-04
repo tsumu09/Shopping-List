@@ -757,7 +757,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                     detail: detail,
                     deadline: deadline,
                     requestedBy: requestedBy,
-                    buyerIds: buyerIds
+                    buyerIds: buyerIds,
+                    groupId: groupId
                 )
             }
 
@@ -807,11 +808,16 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 print("groupId が nil です")
                 return
             }
+            
+            guard let itemId = item.id else {
+                print("item.id が nil です")
+                return
+            }
 
             Firestore.firestore()
                 .collection("groups").document(groupId)
                 .collection("shops").document(shop.id)
-                .collection("items").document(item.id)
+                   .collection("items").document(itemId)
                 .delete { error in
                     if let error = error {
                         print("Firestore 削除失敗: \(error)")
@@ -860,11 +866,14 @@ extension ShopListViewController: ShopListItemCellDelegate {
             "purchaseIntervals": item.purchaseIntervals,
             "averageInterval": item.averageInterval ?? 0
         ]
-
+        guard let itemId = item.id else {
+            print("item.id が nil です")
+            return
+        }
         Firestore.firestore()
             .collection("groups").document(groupId)
             .collection("shops").document(shop.id)
-            .collection("items").document(item.id)
+               .collection("items").document(itemId)
             .updateData(update) { error in
                 if let error = error {
                     print("購入状態更新失敗: \(error)")
@@ -885,14 +894,16 @@ extension ShopListViewController: ShopListItemCellDelegate {
         shops[section].items[row].price = price
         let item = shops[section].items[row]
         let shop = shops[section]
+        guard let itemId = item.id else {
+            print("item.id が nil です")
+            return
+        }
 
         let update: [String: Any] = ["price": price]
         Firestore.firestore()
             .collection("groups").document(groupId)
-                .collection("shops")
-                .document(shop.id)
-                .collection("items")
-                .document(item.id)
+            .collection("shops").document(shop.id)
+               .collection("items").document(itemId)
                 .updateData(update) { error in
                 if let error = error {
                     print("価格更新失敗: \(error)")
