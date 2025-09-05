@@ -38,6 +38,12 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
        var row: Int!
     weak var delegate: ShopListItemCellDelegate?
     
+    let importanceView: UIView = {
+            let view = UIView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            return view
+        }()
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         
@@ -52,9 +58,21 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
             config.background.backgroundColor = .clear
             checkButton.configuration = config
         }
-
+        checkButton.tintColor = .systemCyan
+           detailButton.tintColor = .systemCyan
         // ボタンの画像の初期状態を設定
         updateCheckButton()
+        
+        
+        contentView.addSubview(importanceView)
+        importanceView.translatesAutoresizingMaskIntoConstraints = false
+               // AutoLayout
+        NSLayoutConstraint.activate([
+            importanceView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15), // 左端
+            importanceView.trailingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 38), // toggleButton と同じ右端に合わせる
+            importanceView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            importanceView.heightAnchor.constraint(equalToConstant: 42)
+        ])
     }
 
 
@@ -85,21 +103,21 @@ class ShopListItemCell: UITableViewCell, UITextFieldDelegate {
     
     var importance: Int = 0 {
         didSet {
-            updateBackgroundColor()
+            configureImportance(level: importance)
         }
     }
-    
-    private func updateBackgroundColor() {
-        switch importance {
+
+    func configureImportance(level: Int) {
+        switch level {
         case 3:
                // 低
-               contentView.backgroundColor = UIColor(red: 0.75, green: 0.90, blue: 0.75, alpha: 1.0)
+            importanceView.backgroundColor = UIColor(red: 0.75, green: 0.90, blue: 0.75, alpha: 1.0)
            case 2:
                // 中
-               contentView.backgroundColor = UIColor(red: 0.98, green: 0.95, blue: 0.75, alpha: 1.0)
+            importanceView.backgroundColor = UIColor(red: 0.98, green: 0.95, blue: 0.75, alpha: 1.0)
            default:
                // 高
-               contentView.backgroundColor = UIColor(red: 0.98, green: 0.80, blue: 0.80, alpha: 1.0)
+            importanceView.backgroundColor = UIColor(red: 0.98, green: 0.80, blue: 0.80, alpha: 1.0)
            }
     }
     

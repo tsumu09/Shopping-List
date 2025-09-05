@@ -552,6 +552,28 @@ struct FirestoreUser {
 }
 
 extension FirestoreManager {
+    
+    func deleteShop(groupId: String, shopId: String, completion: @escaping (Error?) -> Void) {
+            let db = Firestore.firestore()
+            let shopRef = db.collection("groups").document(groupId).collection("shops").document(shopId)
+            
+            shopRef.collection("items").getDocuments { snapshot, error in
+                if let error = error {
+                    completion(error)
+                    return
+                }
+                
+                let batch = db.batch()
+                snapshot?.documents.forEach { doc in
+                    batch.deleteDocument(doc.reference)
+                }
+                batch.deleteDocument(shopRef)
+                
+                batch.commit { error in
+                    completion(error)
+                }
+            }
+        }
     func fetchUserNames(completion: @escaping ([String: String]) -> Void) {
         db.collection("users").getDocuments { snapshot, error in
             var names: [String: String] = [:]

@@ -194,7 +194,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
     private func setupFloatingButton() {
         let addButton = UIButton()
-        addButton.backgroundColor = .systemBlue
+        addButton.backgroundColor = .systemCyan
         addButton.setImage(UIImage(systemName: "plus"), for: .normal)
         addButton.tintColor = .white
         addButton.layer.cornerRadius = 30
@@ -413,11 +413,17 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
         cell.nameLabel.text = item.name
         cell.detailLabel?.text = item.detail
         cell.deadlineLabel?.text = formatDate(item.deadline)
-        cell.importance = item.importance
+        cell.configureImportance(level: item.importance)
 
         cell.detailButton.tag = indexPath.section
         cell.detailButton.rowNumber = indexPath.row
         return cell
+    }
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 60
+    }
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return 0
     }
 
 
@@ -530,9 +536,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     
 
     
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return 60
-    }
+    
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
             guard let currentLocation = locations.last else { return }
@@ -635,31 +639,131 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
     //セクションヘッダーの表示（お店の名前＋ボタン）
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = UIView()
-        headerView.backgroundColor = .systemGroupedBackground
         
-        let nameLabel = UILabel(frame: CGRect(x: 50, y: 10, width: 200, height: 40))
+        // 薄めの水色
+//        headerView.backgroundColor = UIColor(red: 0x80/255, green: 0xD2/255, blue: 0xFF/255, alpha: 1.0)
+        headerView.backgroundColor = .white
+//        let importanceView = UIView()
+//            importanceView.backgroundColor = .systemRed   // 色は後で変えられる
+//            importanceView.translatesAutoresizingMaskIntoConstraints = false
+//            headerView.addSubview(importanceView)
+
+        // 店名ラベル
+        let nameLabel = UILabel()
         nameLabel.text = shops[section].name
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(nameLabel)
-        
-        let toggleButton = UIButton(frame: CGRect(x: 0, y: 10, width: 70, height: 40))
+        nameLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        nameLabel.textColor = .black
+        // 開閉ボタン
+        let toggleButton = UIButton(type: .system)
         let imageName = shops[section].isExpanded ? "chevron.down" : "chevron.forward"
         toggleButton.setImage(UIImage(systemName: imageName), for: .normal)
-        toggleButton.tintColor = .systemBlue
+        toggleButton.backgroundColor = .systemCyan
+        toggleButton.tintColor = .white
         toggleButton.tag = section
         toggleButton.addTarget(self, action: #selector(toggleItems(_:)), for: .touchUpInside)
+        toggleButton.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(toggleButton)
         
+
+        // アイテム追加ボタン
         let addItemButton = UIButton(type: .system)
         addItemButton.setTitle("＋", for: .normal)
         addItemButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
-        addItemButton.frame = CGRect(x: tableView.frame.width - 60, y: 10, width: 40, height: 40)
         addItemButton.tag = section
+        addItemButton.tintColor = .systemCyan
         addItemButton.addTarget(self, action: #selector(addItemButtonTapped(_:)), for: .touchUpInside)
+        addItemButton.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(addItemButton)
+        
+        // 削除ボタン
+        let deleteButton = UIButton(type: .system)
+        deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
+        deleteButton.tintColor = .systemCyan
+        deleteButton.tag = section
+        deleteButton.addTarget(self, action: #selector(deleteShopButtonTapped(_:)), for: .touchUpInside)
+        deleteButton.translatesAutoresizingMaskIntoConstraints = false
+        headerView.addSubview(deleteButton)
+        
+        let underlineView = UIView()
+            underlineView.backgroundColor = .systemCyan      // ← 下線色をシアン
+            underlineView.translatesAutoresizingMaskIntoConstraints = false
+            headerView.addSubview(underlineView)
+        
+        
+        // AutoLayout
+        NSLayoutConstraint.activate([
+            // toggle ボタン
+            toggleButton.topAnchor.constraint(equalTo: headerView.topAnchor),
+            toggleButton.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
+            toggleButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 0),
+            toggleButton.widthAnchor.constraint(equalToConstant: 37),
+
+            
+            // 店名ラベル
+            nameLabel.leadingAnchor.constraint(equalTo: toggleButton.trailingAnchor, constant: 8),
+            nameLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            
+            // アイテム追加ボタン
+            addItemButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8),
+            addItemButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            addItemButton.widthAnchor.constraint(equalToConstant: 40),
+            
+            // 削除ボタン
+            deleteButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
+            deleteButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 30),
+            
+            // ここを追加 ↓
+            underlineView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
+            underlineView.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            underlineView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
+            underlineView.heightAnchor.constraint(equalToConstant: 3),
+            
+//            importanceView.leadingAnchor.constraint(equalTo: toggleButton.trailingAnchor, constant: 4),
+//            importanceView.widthAnchor.constraint(equalToConstant: 15),
+//            importanceView.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+//            importanceView.heightAnchor.constraint(equalToConstant: 10)
+
+        
+        ])
+
         
         return headerView
     }
 
+    @objc func deleteShopButtonTapped(_ sender: UIButton) {
+        let section = sender.tag
+        let shop = shops[section]
+        
+        let alert = UIAlertController(
+            title: "お店を削除",
+            message: "\(shop.name) を削除しますか？（中のアイテムも消えます）",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "削除", style: .destructive, handler: { _ in
+            FirestoreManager.shared.deleteShop(groupId: self.groupId, shopId: shop.id) { error in
+                if let error = error {
+                    print("削除失敗: \(error)")
+                } else {
+                    print("削除成功")
+                    
+                    // snapshotListenerを使ってない場合のみ手動で削除
+                    self.shops.remove(at: section)
+                    self.tableView.reloadData()
+                }
+            }
+        }))
+        
+        present(alert, animated: true, completion: nil)
+    }
+
+
+
+    
     
     @objc func toggleItems(_ sender: UIButton) {
         let section = sender.tag
