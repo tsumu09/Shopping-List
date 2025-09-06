@@ -11,6 +11,7 @@ import FirebaseFirestore
 struct Shop: Codable {
     var id: String = UUID().uuidString
     var name: String
+    var groupId: String
     var latitude: Double
     var longitude: Double
     var items: [Item] = []

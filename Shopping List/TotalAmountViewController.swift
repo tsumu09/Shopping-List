@@ -47,9 +47,9 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             tableView.delegate = self
             
             updateMonthLabel()
-        fetchAllShops {
-                self.startAllListeners()
-            }
+////        fetchAllShops {
+////                self.startAllListeners()
+//            }
         /*
         print("お店",shops)
         
@@ -121,46 +121,114 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
                 print("groupId が取得できなかった")
             }
         }
+        fetchGroupIdIfNeeded { [weak self] success in
+                guard let self = self else { return }
+                if success {
+                    // groupId が取得できたらデータをロード
+                    self.fetchAllShops {
+                        self.startAllListeners()
+                    }
+                } else {
+                    print("⚠️ groupId が取得できなかった。ShopListVC に遷移するなどの処理も検討")
+                }
+            }
+    }
+    
+    private func fetchGroupIdIfNeeded(completion: @escaping (Bool) -> Void) {
+        if let groupId = self.groupId, !groupId.isEmpty {
+            // 既に取得済み
+            completion(true)
+            return
+        }
     }
     
     private func startAllListeners() {
-        stopAllItemListeners() // 既存リスナー停止
+        stopAllItemListeners()
         guard let groupId = self.groupId else { return }
         
-        // まず全ショップ取得
-        db.collection("groups").document(groupId).collection("shops").getDocuments { snapshot, error in
-            guard let docs = snapshot?.documents else { return }
-            var allItemsFromListener: [Item] = []
-            for doc in docs {
-                let shopId = doc.documentID
-                let shopName = doc["name"] as? String ?? "不明"
-                self.shopNamesById[shopId] = shopName
+        // ① ショップ名辞書を先に作る
+        db.collection("groups").document(groupId).collection("shops").getDocuments { snapshot, _ in
+            self.shopNamesById.removeAll()
+            snapshot?.documents.forEach { d in
+                self.shopNamesById[d.documentID] = d["name"] as? String ?? "不明"
             }
             
-            // ショップ名を取得した後で初めて itemsListener を登録
+            // ② 今月の開始/終了を作る
+            let cal = Calendar.current
+            let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: self.currentDate))!
+            var comps = DateComponents(); comps.month = 1; comps.second = -1
+            let endOfMonth = cal.date(byAdding: comps, to: startOfMonth)!
+            
+            // ③ 今月の“チェック済み”だけを絞り込み（新データは purchasedDate が入る）
             self.itemsListener = self.db.collectionGroup("items")
                 .whereField("groupId", isEqualTo: groupId)
-                .addSnapshotListener { snapshot, error in
-                    guard let snapshot = snapshot else { return }
-                    var allItems: [Item] = []
-                    for doc in snapshot.documents {
-                        if let item = try? doc.data(as: Item.self) {
-                            allItems.append(item)
+                .whereField("isChecked", isEqualTo: true)
+                .whereField("purchasedDate", isGreaterThanOrEqualTo: Timestamp(date: startOfMonth))
+                .whereField("purchasedDate", isLessThanOrEqualTo: Timestamp(date: endOfMonth))
+                .addSnapshotListener { snap, err in
+                    guard let snap = snap else { return }
+                    
+                    let all: [Item] = snap.documents.map { doc in
+                        let d = doc.data()
+                        
+                        let id = doc.documentID
+                        let shopId = d["shopId"] as? String ?? ""
+                        let name = d["name"] as? String ?? ""
+                        let price: Double
+                        if let num = d["price"] as? NSNumber {
+                            price = num.doubleValue
+                        } else if let dbl = d["price"] as? Double {
+                            price = dbl
                         } else {
-                            print("⚠️ デコード失敗: \(doc.data())")
+                            price = 0
                         }
+                        let isChecked = d["isChecked"] as? Bool ?? false
+                        let importance = d["importance"] as? Int ?? 1
+                        let detail = d["detail"] as? String ?? ""
+                        let deadline = (d["deadline"] as? Timestamp)?.dateValue()
+                        let requestedBy = d["requestedBy"] as? String ?? ""
+                        let buyerIds = d["buyerIds"] as? [String] ?? []
+                        
+                        let purchaseIntervals: [Int]
+                        if let arr = d["purchaseIntervals"] as? [Int] {
+                            purchaseIntervals = arr
+                        } else if let arr = d["purchaseIntervals"] as? [Double] {
+                            purchaseIntervals = arr.map { Int($0) }
+                        } else {
+                            purchaseIntervals = []
+                        }
+                        
+                        let averageInterval = d["averageInterval"] as? Double
+                        let purchaseHistory = (d["purchaseHistory"] as? [Timestamp])?.map { $0.dateValue() } ?? []
+                        let purchasedDate = (d["purchasedDate"] as? Timestamp)?.dateValue()
+                        let isAutoAdded = d["isAutoAdded"] as? Bool ?? false
+                        let groupId = d["groupId"] as? String ?? self.groupId ?? ""
+                        
+                        return Item(
+                            id: id,
+                            shopId: shopId,
+                            name: name,
+                            price: price,
+                            isChecked: isChecked,
+                            importance: importance,
+                            detail: detail,
+                            deadline: deadline,
+                            requestedBy: requestedBy,
+                            buyerIds: buyerIds,
+                            purchaseIntervals: purchaseIntervals,
+                            averageInterval: averageInterval,
+                            purchaseHistory: purchaseHistory,
+                            isAutoAdded: isAutoAdded,
+                            groupId: groupId
+                        )
                     }
-                    self.items = allItems
-                    self.groupItemsByMonthAndShop(items: allItems, shopNamesById: self.shopNamesById)
+
+                    
+                    self.items = all
+                    self.groupItemsByMonthAndShop(items: all, shopNamesById: self.shopNamesById)
+                    self.updateTotalPriceInCells()
                     self.tableView.reloadData()
                 }
-            
-            
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-                print("🔥 itemsListenerで取得した items:", allItemsFromListener.map { $0.name })
-                print("✅ リスナー経由でデータが更新されました。")
-            }
         }
     }
 
@@ -181,21 +249,52 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     }
     
     func fetchAllShops(completion: @escaping () -> Void) {
-        guard let groupId = self.groupId else { return }
-        db.collection("groups").document(groupId).collection("shops").getDocuments { snapshot, error in
-            guard let docs = snapshot?.documents else {
-                completion()
-                return
-            }
-
-            for doc in docs {
-                let shopId = doc.documentID
-                let shopName = doc["name"] as? String ?? "不明"
-                self.shopNamesById[shopId] = shopName
-            }
-
+        guard let groupId = self.groupId else {
+            print("❌ groupId が nil です")
             completion()
+            return
         }
+        
+        let db = Firestore.firestore()
+        db.collection("groups")
+            .document(groupId)
+            .collection("shops")
+            .getDocuments { snapshot, error in
+                guard let docs = snapshot?.documents else {
+                    if let error = error {
+                        print("Error fetching shops: \(error)")
+                    }
+                    completion()
+                    return
+                }
+                
+                self.shops = [] // 既存の配列をリセット
+                self.shopNamesById = [:] // 名前辞書もリセット
+                
+                for doc in docs {
+                    let data = doc.data()
+                    
+                    let shopId = data["shopId"] as? String ?? doc.documentID
+                    let name = data["name"] as? String ?? "不明"
+                    let latitude = data["latitude"] as? Double ?? 0.0
+                    let longitude = data["longitude"] as? Double ?? 0.0
+                    
+                    let shop = Shop(
+                        id: shopId,      // Firestore の shopId を使用
+                        name: name,
+                        groupId: groupId,
+                        latitude: latitude,
+                        longitude: longitude,
+                        items: [],       // items は後で fetchItems などで取得
+                        isExpanded: true
+                    )
+                    
+                    self.shops.append(shop)
+                    self.shopNamesById[shopId] = name
+                }
+                
+                completion()
+            }
     }
 
 //    private func fetchItemsAndReload() {

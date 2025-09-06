@@ -66,19 +66,30 @@ final class FirestoreManager {
     
     
     
-    func addShop(to groupId: String, name: String, latitude: Double, longitude: Double, completion: @escaping (Error?) -> Void) {
+    func addShop(to groupId: String,
+                 name: String,
+                 latitude: Double,
+                 longitude: Double,
+                 completion: @escaping (Error?) -> Void) {
+        let db = Firestore.firestore()
         let shopRef = db
             .collection("groups").document(groupId)
-            .collection("shops").document()
+            .collection("shops").document() // ← 自動生成のID
+        let shopId = shopRef.documentID
+
         let data: [String: Any] = [
+            "shopId": shopId,
+            "groupId": groupId, // ← 追加
             "name": name,
             "latitude": latitude,
-            "longitude": longitude
+            "longitude": longitude,
+            "createdAt": Timestamp(date: Date())
         ]
         shopRef.setData(data) { error in
             completion(error)
         }
     }
+
     
     func addItem(to groupId: String,
                  shopId: String,
@@ -93,28 +104,34 @@ final class FirestoreManager {
             .collection("shops")
             .document(shopId)
             .collection("items")
-            .document()
+            .document() // ← 自動生成のID
         
+        let itemId = itemRef.documentID
+        let currentUser = Auth.auth().currentUser
+
         let itemData: [String: Any] = [
+            "itemId": itemId,         // ← 追加
+            "shopId": shopId,         // ← 追加
+            "groupId": groupId,       // ← 追加
             "name": name,
             "price": price,
             "isChecked": false,
-            "groupId": groupId,
             "importance": importance,
             "detail": detail,
             "deadline": NSNull(),
-            "requestedBy": Auth.auth().currentUser?.displayName ?? "誰か",
+            "requestedBy": currentUser?.displayName ?? "誰か",
             "createdAt": Timestamp(date: Date()),
-            "buyerIds": FieldValue.arrayUnion([Auth.auth().currentUser!.uid]),
+            "buyerIds": [currentUser?.uid ?? ""], // ← arrayUnion は setData 時不要
             "purchaseIntervals": [], // 初期値は空
-            "averageInterval": NSNull() // まだ計算できないから null
+            "averageInterval": NSNull(), // まだ計算できないから null
+            "isAutoAdded": false
         ]
         
         itemRef.setData(itemData) { error in
             if let error = error {
                 completion(.failure(error))
             } else {
-                completion(.success(itemRef.documentID))
+                completion(.success(itemId))
             }
         }
         
@@ -123,10 +140,11 @@ final class FirestoreManager {
             .document(groupId)
             .collection("notifications")
             .addDocument(data: [
-                "message": "\(Auth.auth().currentUser?.displayName ?? "誰か")が商品「\(name)」を追加しました",
+                "message": "\(currentUser?.displayName ?? "誰か")が商品「\(name)」を追加しました",
                 "timestamp": Timestamp(date: Date())
             ])
     }
+
     
     
     
@@ -279,6 +297,7 @@ final class FirestoreManager {
                 var shop = Shop(
                     id: d.documentID,
                     name: d["name"] as? String ?? "",
+                    groupId: d["groupId"] as? String ?? "",
                     latitude: lat,
                     longitude: lng,
                     items: []
@@ -298,7 +317,7 @@ final class FirestoreManager {
                             let deadline = (data["deadline"] as? Timestamp)?.dateValue()
                             let rawIntervals = data["purchaseIntervals"] as? [Double] ?? []
                             let purchaseIntervals = (data["purchaseIntervals"] as? [Double] ?? []).map { Int($0) }
-                            
+                            let isAutoAdded = data["isAutoAdded"] as? Bool ?? false
                             return Item(
                                 id: i.documentID,
                                 shopId: data["shopId"] as? String ?? "",
@@ -312,6 +331,7 @@ final class FirestoreManager {
                                 buyerIds: data["buyerIds"] as? [String] ?? [],
                                 purchaseIntervals: purchaseIntervals,
                                 averageInterval: data["averageInterval"] as? Double ?? 0.0,
+                                isAutoAdded: isAutoAdded,
                                 groupId: groupId
                             )
                         } ?? []
@@ -353,7 +373,8 @@ final class FirestoreManager {
                 let rawIntervals = data["purchaseIntervals"] as? [Double] ?? []
                 let purchaseIntervals = (data["purchaseIntervals"] as? [Double] ?? []).map { Int($0) }
 
-
+                let averageInterval = data["averageInterval"] as? Double
+                let isAutoAdded = data["isAutoAdded"] as? Bool ?? false
                 
                 return Item(
                     id: d.documentID,
@@ -368,6 +389,7 @@ final class FirestoreManager {
                     buyerIds: data["buyerIds"] as? [String] ?? [],
                     purchaseIntervals: purchaseIntervals,
                     averageInterval: data["averageInterval"] as? Double ?? 0.0,
+                    isAutoAdded: isAutoAdded,
                     groupId: groupId
                 )
             }
@@ -575,18 +597,31 @@ extension FirestoreManager {
             }
         }
     func fetchUserNames(completion: @escaping ([String: String]) -> Void) {
+        let db = Firestore.firestore()
+        
         db.collection("users").getDocuments { snapshot, error in
             var names: [String: String] = [:]
+            
+            if let error = error {
+                print("Error fetching users: \(error)")
+                completion(names)
+                return
+            }
+            
             if let docs = snapshot?.documents {
                 for doc in docs {
                     let data = doc.data()
-                    let displayName = (data["first_name"] as? String ?? "") + " " + (data["last_name"] as? String ?? "")
-                    names[doc.documentID] = displayName
+                    let firstName = data["first_name"] as? String ?? ""
+                    let lastName = data["last_name"] as? String ?? ""
+                    let displayName = firstName + " " + lastName
+                    names[doc.documentID] = displayName // ← uid がキーになる
                 }
             }
+            
             completion(names)
         }
     }
+
    
         /// pendingMembers の承認処理
     func approveMember(safeEmail: String, groupId: String, completion: @escaping (Error?) -> Void) {

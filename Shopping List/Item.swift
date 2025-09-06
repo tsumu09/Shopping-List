@@ -62,6 +62,7 @@ extension Item {
             buyerIds: data["buyerIds"] as? [String] ?? [],
             purchaseIntervals: intervals,
             averageInterval: data["averageInterval"] as? Double ?? 0,
+            isAutoAdded: false,
             groupId: data["groupId"] as? String ?? ""
         )
     }

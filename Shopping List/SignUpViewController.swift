@@ -24,64 +24,57 @@ class SignUpViewController: UIViewController {
     @IBOutlet weak var firstNameTextField: UITextField!
     @IBOutlet weak var lastNameTextField: UITextField!
     @IBOutlet weak var signUpButton: UIButton!
-    @IBAction func signUp(){
+    @IBAction func signUp() {
         guard let email = emailTextField.text, !email.isEmpty,
               let password = passwordTextField.text, !password.isEmpty,
               let firstName = firstNameTextField.text, !firstName.isEmpty,
-              let lastName = lastNameTextField.text, !lastName.isEmpty
-        else{
+              let lastName = lastNameTextField.text, !lastName.isEmpty else {
             print("入力事項に不備があります")
             return
         }
         
-        let alert = UIAlertController(title: "アカウント作成",
-                                      message: "新しくアカウントを作成しますか？",
-                                      preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "はい",
-                                      style: .default,
-                                      handler: { [weak self] _ in
+        let alert = UIAlertController(
+            title: "アカウント作成",
+            message: "新しくアカウントを作成しますか？",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "はい", style: .default) { [weak self] _ in
             guard let self = self else { return }
-
-            FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password) { result, error in
-                guard error == nil, let user = result?.user else {
-                    print("サインアップに失敗しました: \(error!.localizedDescription)")
+            
+            Auth.auth().createUser(withEmail: email, password: password) { result, error in
+                if let error = error {
+                    print("❌ サインアップに失敗: \(error.localizedDescription)")
                     return
                 }
-                print("サインインしました")
-
-                // Firestore にユーザー保存
+                guard let user = result?.user else { return }
+                
+                print("✅ サインアップ成功: \(user.uid)")
+                
                 let db = Firestore.firestore()
-                let userRef = db.collection("users").document(user.uid)
-                userRef.setData([
-                    "displayName": "\(firstName) \(lastName)", // ←ここで苗字+名前を保存
-                    "email": email
-                ], merge: true)
-
-                // もし FirestoreManager で管理してるなら、ここに組み合わせてもOK
-                let fsUser = FirestoreUser(
-                    firstName: firstName,
-                    lastName: lastName,
-                    emailAddress: email
-                )
-                FirestoreManager.shared.userExists(uid: user.uid) { exists in
-                    if exists {
-                        print("ユーザーがすでに存在しています")
-                        return
-                    }
-                    FirestoreManager.shared.insertUser(fsUser) { success in
-                        if success {
-                            print("ユーザー情報の保存が完了しました")
-                            self.switchRoot(to: "GroupNav")
-                        }
+                db.collection("users").document(user.uid).setData([
+                    "uid": user.uid,
+                    "displayName": "\(firstName) \(lastName)",
+                    "first_name": firstName,
+                    "last_name": lastName,
+                    "email": email,
+                    "createdAt": Timestamp(date: Date())
+                ]) { error in
+                    if let error = error {
+                        print("❌ Firestore ユーザー保存失敗: \(error.localizedDescription)")
+                    } else {
+                        print("✅ Firestore ユーザー保存成功")
+                        // 🔽 グループ作成画面に遷移
+                        self.switchRoot(to: "GroupNav")
                     }
                 }
             }
-
-            
-        }))
-        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel, handler: { _ in }))
+        })
+        
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
         present(alert, animated: true)
     }
+
 
     
     private func switchRoot(to storyboardID: String) {

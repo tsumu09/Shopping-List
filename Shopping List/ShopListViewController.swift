@@ -849,7 +849,8 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                 let deadline = (data["deadline"] as? Timestamp)?.dateValue()
                 let purchasedDate = (data["purchasedDate"] as? Timestamp)?.dateValue()
                 let buyerIds = data["buyerIds"] as? [String] ?? []
-
+                let isAutoAdded = data["isAutoAdded"] as? Bool ?? false
+                
                 return Item(
                     id: id,
                     shopId: shop.id,
@@ -862,6 +863,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                     deadline: deadline,
                     requestedBy: requestedBy,
                     buyerIds: buyerIds,
+                    isAutoAdded: isAutoAdded,
                     groupId: groupId
                 )
             }

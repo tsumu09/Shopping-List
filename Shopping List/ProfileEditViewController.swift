@@ -98,10 +98,10 @@ class ProfileEditViewController: UIViewController {
             try firebaseAuth.signOut()
             print("ログアウト成功")
             
-            // 遷移先を StartViewController に変更
-            if let startVC = storyboard?.instantiateViewController(withIdentifier: "StartViewController") {
-                startVC.modalPresentationStyle = .fullScreen
-                self.present(startVC, animated: true)
+            // 遷移先を LogInViewController に変更
+            if let LogInVC = storyboard?.instantiateViewController(withIdentifier: "LogInViewController") {
+                LogInVC.modalPresentationStyle = .fullScreen
+                self.present(LogInVC, animated: true)
             }
             
         } catch let signOutError as NSError {
