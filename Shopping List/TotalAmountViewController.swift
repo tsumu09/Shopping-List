@@ -145,91 +145,71 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     private func startAllListeners() {
         stopAllItemListeners()
         guard let groupId = self.groupId else { return }
-        
+
         // ① ショップ名辞書を先に作る
         db.collection("groups").document(groupId).collection("shops").getDocuments { snapshot, _ in
             self.shopNamesById.removeAll()
             snapshot?.documents.forEach { d in
-                self.shopNamesById[d.documentID] = d["name"] as? String ?? "不明"
+                let shopName = d["name"] as? String ?? "不明"
+                self.shopNamesById[d.documentID] = shopName
             }
-            
-            // ② 今月の開始/終了を作る
-            let cal = Calendar.current
-            let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: self.currentDate))!
-            var comps = DateComponents(); comps.month = 1; comps.second = -1
-            let endOfMonth = cal.date(byAdding: comps, to: startOfMonth)!
-            
-            // ③ 今月の“チェック済み”だけを絞り込み（新データは purchasedDate が入る）
-            self.itemsListener = self.db.collectionGroup("items")
-                .whereField("groupId", isEqualTo: groupId)
-                .whereField("isChecked", isEqualTo: true)
-                .whereField("purchasedDate", isGreaterThanOrEqualTo: Timestamp(date: startOfMonth))
-                .whereField("purchasedDate", isLessThanOrEqualTo: Timestamp(date: endOfMonth))
-                .addSnapshotListener { snap, err in
-                    guard let snap = snap else { return }
-                    
-                    let all: [Item] = snap.documents.map { doc in
-                        let d = doc.data()
-                        
-                        let id = doc.documentID
-                        let shopId = d["shopId"] as? String ?? ""
-                        let name = d["name"] as? String ?? ""
-                        let price: Double
-                        if let num = d["price"] as? NSNumber {
-                            price = num.doubleValue
-                        } else if let dbl = d["price"] as? Double {
-                            price = dbl
-                        } else {
-                            price = 0
-                        }
-                        let isChecked = d["isChecked"] as? Bool ?? false
-                        let importance = d["importance"] as? Int ?? 1
-                        let detail = d["detail"] as? String ?? ""
-                        let deadline = (d["deadline"] as? Timestamp)?.dateValue()
-                        let requestedBy = d["requestedBy"] as? String ?? ""
-                        let buyerIds = d["buyerIds"] as? [String] ?? []
-                        
-                        let purchaseIntervals: [Int]
-                        if let arr = d["purchaseIntervals"] as? [Int] {
-                            purchaseIntervals = arr
-                        } else if let arr = d["purchaseIntervals"] as? [Double] {
-                            purchaseIntervals = arr.map { Int($0) }
-                        } else {
-                            purchaseIntervals = []
-                        }
-                        
-                        let averageInterval = d["averageInterval"] as? Double
-                        let purchaseHistory = (d["purchaseHistory"] as? [Timestamp])?.map { $0.dateValue() } ?? []
-                        let purchasedDate = (d["purchasedDate"] as? Timestamp)?.dateValue()
-                        let isAutoAdded = d["isAutoAdded"] as? Bool ?? false
-                        let groupId = d["groupId"] as? String ?? self.groupId ?? ""
-                        
-                        return Item(
-                            id: id,
-                            shopId: shopId,
-                            name: name,
-                            price: price,
-                            isChecked: isChecked,
-                            importance: importance,
-                            detail: detail,
-                            deadline: deadline,
-                            requestedBy: requestedBy,
-                            buyerIds: buyerIds,
-                            purchaseIntervals: purchaseIntervals,
-                            averageInterval: averageInterval,
-                            purchaseHistory: purchaseHistory,
-                            isAutoAdded: isAutoAdded,
-                            groupId: groupId
-                        )
+
+            // shopNamesById 作成後に listener を追加
+            self.startItemsListener()
+        }
+    }
+
+    private func startItemsListener() {
+        guard let groupId = self.groupId else { return }
+
+        let cal = Calendar.current
+        let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: self.currentDate))!
+        var comps = DateComponents(); comps.month = 1; comps.second = -1
+        let endOfMonth = cal.date(byAdding: comps, to: startOfMonth)!
+
+        self.itemsListener = self.db.collectionGroup("items")
+            .whereField("groupId", isEqualTo: groupId)
+            .whereField("isChecked", isEqualTo: true)
+            .whereField("purchasedDate", isGreaterThanOrEqualTo: Timestamp(date: startOfMonth))
+            .whereField("purchasedDate", isLessThanOrEqualTo: Timestamp(date: endOfMonth))
+            .addSnapshotListener { snap, err in
+                guard let snap = snap else { return }
+
+                var allItems: [Item] = []
+
+                for doc in snap.documents {
+                    let d = doc.data()
+                    let item = Item(
+                        id: doc.documentID,
+                        shopId: d["shopId"] as? String ?? "",
+                        name: d["name"] as? String ?? "",
+                        price: (d["price"] as? NSNumber)?.doubleValue ?? (d["price"] as? Double ?? 0),
+                        isChecked: d["isChecked"] as? Bool ?? false,
+                        importance: d["importance"] as? Int ?? 1,
+                        detail: d["detail"] as? String ?? "",
+                        deadline: (d["deadline"] as? Timestamp)?.dateValue(),
+                        requestedBy: d["requestedBy"] as? String ?? "",
+                        buyerIds: d["buyerIds"] as? [String] ?? [],
+                        purchaseIntervals: (d["purchaseIntervals"] as? [Int]) ?? ((d["purchaseIntervals"] as? [Double])?.map { Int($0) } ?? []),
+                        averageInterval: d["averageInterval"] as? Double,
+                        purchaseHistory: (d["purchaseHistory"] as? [Timestamp])?.map { $0.dateValue() } ?? [],
+                        isAutoAdded: d["isAutoAdded"] as? Bool ?? false,
+                        groupId: d["groupId"] as? String ?? groupId
+                    )
+
+                    // shopId が辞書にない場合はログ
+                    if self.shopNamesById[item.shopId] == nil {
+                        print("⚠️ shopId \(item.shopId) が shopNamesById に存在しません。Item名: \(item.name)")
                     }
 
-                    
-                    self.items = all
-                    self.groupItemsByMonthAndShop(items: all, shopNamesById: self.shopNamesById)
-                    self.updateTotalPriceInCells()
-                    self.tableView.reloadData()
+                    allItems.append(item)
                 }
-        }
+
+                self.items = allItems
+                self.groupItemsByMonthAndShop(items: allItems, shopNamesById: self.shopNamesById)
+                self.updateTotalPriceInCells()
+                self.tableView.reloadData()
+            }
     }
 
     
@@ -624,7 +604,9 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             let comps = calendar.dateComponents([.year, .month], from: item.purchaseHistory.first ?? Date())
             let monthKey = "\(comps.year!)-\(comps.month!)"
             
-            let shopName = shopNamesById[item.shopId] ?? "不明"
+            let shopIdTrimmed = item.shopId.trimmingCharacters(in: .whitespacesAndNewlines)
+            let shopName = shopNamesById[shopIdTrimmed] ?? "不明"
+
             
             // itemsByMonthAndShop に追加
             if self.itemsByMonthAndShop[monthKey] == nil {
