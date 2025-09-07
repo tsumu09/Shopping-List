@@ -37,7 +37,7 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     var displayedItems: [String: [Item]] = [:]
     var monthlyItems: [String: [Item]] = [:]
-
+    var currentMonthKey: String = ""
     
     private var itemListeners: [String: ListenerRegistration] = [:] // shop.id -> listener
     let db = Firestore.firestore()
@@ -53,6 +53,10 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             tableView.delegate = self
         fetchUserNames()
             updateMonthLabel()
+        
+        let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy年M月"
+            currentMonthKey = formatter.string(from: Date())
 ////        fetchAllShops {
 ////                self.startAllListeners()
 //            }
@@ -356,7 +360,12 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
             return "\(comps.year!)-itabl\(comps.month!)"
         }
     }
-
+    
+    func showMonth(_ monthKey: String) {
+        currentMonthKey = monthKey
+        tableView.reloadData()
+    }
+    
     func prepareSectionKeys() {
         sectionKeys = []
         let sortedMonths = itemsByMonthAndShop.keys.sorted()
@@ -646,32 +655,37 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
         self.itemsByMonthAndShop.removeAll()
         
         let calendar = Calendar.current
+        let monthFormatter = DateFormatter()
+        monthFormatter.dateFormat = "yyyy年M月" // 例: 2025年9月
         
         for item in items {
             let shopIdTrimmed = item.shopId.trimmingCharacters(in: .whitespacesAndNewlines)
             
-            // purchaseHistory の日付ごとに monthKey を作る
             for date in item.purchaseHistory {
-                let comps = calendar.dateComponents([.year, .month], from: date)
-                let monthKey = "\(comps.year!)-\(comps.month!)"
+                let monthKey = monthFormatter.string(from: date)
                 
-                // itemsByMonthAndShop に追加
                 if self.itemsByMonthAndShop[monthKey] == nil {
                     self.itemsByMonthAndShop[monthKey] = [:]
                 }
                 if self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed] == nil {
                     self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed] = []
                 }
-                self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed]?.append(item)
+                
+                // 月ごとにコピーを作成して追加
+                var copy = item
+                copy.purchaseHistory = [date] // この月の購入日だけ残す
+                self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed]?.append(copy)
             }
         }
         
-        // sectionKeys を更新
-        self.sectionKeys = self.itemsByMonthAndShop.flatMap { (month, shopDict) in
-            shopDict.map { (shopId, items) in
-                (month: month, shopId: shopId, shopName: shopNamesById[shopId] ?? "不明")
+        // sectionKeys を更新（新しい月が上にくる）
+        self.sectionKeys = self.itemsByMonthAndShop
+            .sorted { $0.key > $1.key }
+            .flatMap { (month, shopDict) in
+                shopDict.map { (shopId, _) in
+                    (month: month, shopId: shopId, shopName: shopNamesById[shopId] ?? "不明")
+                }
             }
-        }
         
         tableView.reloadData()
     }
@@ -680,18 +694,39 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
 
     
     func numberOfSections(in tableView: UITableView) -> Int {
-        
-        return sectionKeys.count
+        let filteredKeys = sectionKeys.filter { $0.month == currentMonthKey }
+        return filteredKeys.count
     }
-    
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let sectionInfo = sectionKeys[section]
+        let filteredKeys = sectionKeys.filter { $0.month == currentMonthKey }
+        let sectionInfo = filteredKeys[section]
+
         guard let shopItemsDict = itemsByMonthAndShop[sectionInfo.month],
               let monthItems = shopItemsDict[sectionInfo.shopId] else {
             return 1 // 合計セルのみ
         }
-        return 1 + monthItems.count // 合計セル + 全アイテム
+        return 1 + monthItems.count
     }
+    
+    func updateMonthlyTotalLabel() {
+        let monthFormatter = DateFormatter()
+        monthFormatter.dateFormat = "yyyy年M月" // groupItemsByMonthAndShop と同じ形式
+
+        let monthKey = monthFormatter.string(from: currentDate)
+
+        var monthlyTotal: Int = 0
+
+        if let shopDict = itemsByMonthAndShop[monthKey] {
+            for (_, items) in shopDict {
+                monthlyTotal += items.reduce(0) { $0 + Int($1.price) }
+            }
+        }
+
+        monthlyTotalLabel.text = "合計: \(monthlyTotal)円"
+    }
+
+
 
 
     
@@ -818,30 +853,38 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
 //    }
 
     
-    @IBAction func prevMonthTapped(_ sender: UIButton) {
+    @IBAction func prevMonthButtonTapped(_ sender: UIButton) {
         changeMonth(by: -1)
     }
 
-    @IBAction func nextMonthTapped(_ sender: UIButton) {
+    @IBAction func nextMonthButtonTapped(_ sender: UIButton) {
         changeMonth(by: 1)
     }
 
+
+
+
     func changeMonth(by value: Int) {
         let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy年M月"
+        
         // currentDate を value か月進める
         if let newDate = calendar.date(byAdding: .month, value: value, to: currentDate) {
             currentDate = newDate
             updateMonthLabel()
             
-            // selectedYear / selectedMonth を更新
-            selectedYear = calendar.component(.year, from: newDate)
-            selectedMonth = calendar.component(.month, from: newDate)
+            // 月キーを更新
+            currentMonthKey = formatter.string(from: newDate)
+            print("Changed month:", currentMonthKey)
             
-            // 月が変わったら items を再グループ化
-            groupItemsByMonthAndShop(items: allItems, shopNamesById: shopNamesById)
+            // ここでは再グループ化しない！
             tableView.reloadData()
         }
+        updateMonthlyTotalLabel()
+
     }
+
 
 
     func updateMonthLabel() {

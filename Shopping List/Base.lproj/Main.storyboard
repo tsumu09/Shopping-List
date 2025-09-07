@@ -930,7 +930,7 @@
                                     <fontDescription key="titleFontDescription" type="system" pointSize="30"/>
                                 </buttonConfiguration>
                                 <connections>
-                                    <action selector="prevMonthTapped:" destination="5H4-ns-jih" eventType="touchUpInside" id="2C3-p9-8tR"/>
+                                    <action selector="prevMonthButtonTapped:" destination="5H4-ns-jih" eventType="touchUpInside" id="9Bm-pb-IkL"/>
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="month" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Yus-E4-IMO">
@@ -949,7 +949,7 @@
                                     <fontDescription key="titleFontDescription" type="system" pointSize="30"/>
                                 </buttonConfiguration>
                                 <connections>
-                                    <action selector="nextMonthTapped:" destination="5H4-ns-jih" eventType="touchUpInside" id="tkq-FE-cQY"/>
+                                    <action selector="nextMonthButtonTapped:" destination="5H4-ns-jih" eventType="touchUpInside" id="ixi-0Q-xtO"/>
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="TotalAmount" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3hU-GL-HtP">
