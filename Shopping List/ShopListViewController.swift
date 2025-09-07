@@ -562,24 +562,37 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
                   
                   let distance = currentLocation.distance(from: shopLocation) // メートル
                   
-                  // 例えば 100m以内なら通知
-                  if distance < 100 {
-                      self.notifyForUnpurchasedItems(shopId: doc.documentID, shopName: shopName)
+                  // 50m以内なら通知
+                  if distance < 50 {
+                      self.notifyForUnpurchasedItems(
+                          shopId: doc.documentID,
+                          shopName: shopName,
+                          shopLat: lat,
+                          shopLng: lon
+                      )
                   }
+
               }
           }
     }
     
-    func notifyForUnpurchasedItems(shopId: String, shopName: String) {
-        guard let groupId = SessionManager.shared.groupId else { return }
-        let db = Firestore.firestore()
+    func notifyForUnpurchasedItems(shopId: String, shopName: String, shopLat: Double, shopLng: Double) {
+        guard let userLocation = locationManager.location else { return }
         
+        let shopLocation = CLLocation(latitude: shopLat, longitude: shopLng)
+        let distance = userLocation.distance(from: shopLocation)
+        
+        let radius: Double = 50 // 50m以内だけ通知
+        guard distance <= radius else { return }
+
+        // Firestore から未購入アイテム取得して通知
+        guard let groupId = SessionManager.shared.groupId else { return }
         db.collection("groups")
           .document(groupId)
           .collection("shops")
           .document(shopId)
           .collection("items")
-          .whereField("isChecked", isEqualTo: false) // 未購入のみ
+          .whereField("isChecked", isEqualTo: false)
           .getDocuments { snapshot, error in
               guard let snapshot = snapshot else { return }
               for doc in snapshot.documents {
@@ -588,6 +601,7 @@ class ShopListViewController: UIViewController, UITableViewDataSource, UITableVi
               }
           }
     }
+
 
 
     

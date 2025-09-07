@@ -12,7 +12,7 @@ class MemberCell: UITableViewCell {
     
     func configure(with member: AppUser) {
         // firstName だけ表示
-        nameLabel.text = member.firstName
+        nameLabel.text = member.displayName
     }
 
 }

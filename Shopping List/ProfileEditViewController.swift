@@ -31,12 +31,10 @@ class ProfileEditViewController: UIViewController {
 
     /// Firestoreから現在のユーザー情報を取得して表示
     func loadUserData() {
-        guard let email = Auth.auth().currentUser?.email else { return }
-        print("ログイン中のメール:", email)
-        let safeEmail = makeSafeEmail(from: email)
-        print("safeEmail:", safeEmail)
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        print("ログイン中のUID:", uid)
         
-        db.collection("users").document(safeEmail).getDocument { [weak self] snapshot, error in
+        db.collection("users").document(uid).getDocument { [weak self] snapshot, error in
             if let error = error {
                 print("Firestore エラー: \(error.localizedDescription)")
                 return
@@ -48,12 +46,25 @@ class ProfileEditViewController: UIViewController {
             }
             
             DispatchQueue.main.async {
-                self?.firstNameTextField.text = data["first_name"] as? String ?? ""
-                self?.lastNameTextField.text = data["last_name"] as? String ?? ""
+                // displayName から分割して表示
+                if let displayName = data["displayName"] as? String {
+                    let parts = displayName.split(separator: " ")
+                    if parts.count >= 2 {
+                        let firstName = String(parts[0]) // 名
+                        let lastName = String(parts[1])  // 姓
+                        self?.firstNameTextField.text = firstName
+                        self?.lastNameTextField.text = lastName
+                    } else {
+                        self?.firstNameTextField.text = displayName
+                        self?.lastNameTextField.text = ""
+                    }
+                }
+                
                 self?.emailLabel.text = data["email"] as? String ?? ""
             }
         }
     }
+
 
 
     

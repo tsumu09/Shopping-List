@@ -23,7 +23,8 @@ struct Item: Codable, Identifiable {
     var purchaseHistory: [Date] = []
     var isAutoAdded: Bool = false
     var groupId: String
-
+    var buyerNames: [String]? = nil
+    
     // デフォルト値付きで、Firestore の欠けたフィールドも安全にデコード
     enum CodingKeys: String, CodingKey {
         case id

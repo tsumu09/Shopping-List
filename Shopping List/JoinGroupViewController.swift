@@ -14,6 +14,7 @@ class JoinGroupViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        joinButton.layer.cornerRadius = 10
         title = "招待コードで参加"
         setupUI()
     }

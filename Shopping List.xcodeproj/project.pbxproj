@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F645BA0D2E6CFF7400AA28D6 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F645BA0C2E6CFF7400AA28D6 /* FirebaseMessaging */; };
 		F66C49372E14161F00779F60 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = F66C49362E14161F00779F60 /* FirebaseAuth */; };
 		F66C49492E1E817C00779F60 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = F66C49482E1E817C00779F60 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -41,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F645BA0D2E6CFF7400AA28D6 /* FirebaseMessaging in Frameworks */,
 				F66C49372E14161F00779F60 /* FirebaseAuth in Frameworks */,
 				F66C49492E1E817C00779F60 /* FirebaseFirestore in Frameworks */,
 			);
@@ -87,6 +89,7 @@
 			packageProductDependencies = (
 				F66C49362E14161F00779F60 /* FirebaseAuth */,
 				F66C49482E1E817C00779F60 /* FirebaseFirestore */,
+				F645BA0C2E6CFF7400AA28D6 /* FirebaseMessaging */,
 			);
 			productName = "Shopping List";
 			productReference = F6B544C12DB8FE8500594508 /* Shopping List.app */;
@@ -370,6 +373,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		F645BA0C2E6CFF7400AA28D6 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F66C49352E14161F00779F60 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		F66C49362E14161F00779F60 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F66C49352E14161F00779F60 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

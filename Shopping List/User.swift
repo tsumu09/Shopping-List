@@ -7,32 +7,26 @@
 
 struct AppUser {
     var uid: String?
-    var firstName: String
-    var lastName: String
+    var displayName: String
     var email: String?
     
-    init(uid: String?, firstName: String, lastName: String, email: String?) {
+    init(uid: String?, displayName: String, email: String?) {
         self.uid = uid
-        self.firstName = firstName
-        self.lastName = lastName
-        self.email = email
-    }
-
-    init?(dictionary: [String: Any], uid: String) {
-        guard let firstName = dictionary["first_name"] as? String,
-              let lastName = dictionary["last_name"] as? String,
-              let email = dictionary["email"] as? String else { return nil }
-        self.uid = uid
-        self.firstName = firstName
-        self.lastName = lastName
+        self.displayName = displayName
         self.email = email
     }
     
-    // 🔹 追加：firstName だけで作れる簡易イニシャライザ
-    init(uid: String?, firstName: String) {
+    init?(dictionary: [String: Any], uid: String) {
+        guard let displayName = dictionary["displayName"] as? String,
+              let email = dictionary["email"] as? String else { return nil }
         self.uid = uid
-        self.firstName = firstName
-        self.lastName = ""
+        self.displayName = displayName
+        self.email = email
+    }
+    
+    init(uid: String?, displayName: String) {
+        self.uid = uid
+        self.displayName = displayName
         self.email = nil
     }
 }

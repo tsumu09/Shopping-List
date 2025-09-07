@@ -17,9 +17,11 @@ class CreateGroupViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        createGroupButton.layer.cornerRadius = 10
         // Do any additional setup after loading the view.
     }
+    
+    @IBOutlet weak var createGroupButton: UIButton!
     @IBOutlet weak var groupNameField: UITextField!
     func presentAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)

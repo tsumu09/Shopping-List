@@ -32,6 +32,12 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     var itemsByMonthAndShop: [String: [String: [Item]]] = [:]
     var sectionKeys: [(month: String, shopId: String, shopName: String)] = []
     var shopNamesById: [String: String] = [:]
+    var uidToDisplayName: [String: String] = [:]
+    var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    var selectedMonth: Int = Calendar.current.component(.month, from: Date())
+    var displayedItems: [String: [Item]] = [:]
+    var monthlyItems: [String: [Item]] = [:]
+
     
     private var itemListeners: [String: ListenerRegistration] = [:] // shop.id -> listener
     let db = Firestore.firestore()
@@ -45,7 +51,7 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
         super.viewDidLoad()
         tableView.dataSource = self
             tableView.delegate = self
-            
+        fetchUserNames()
             updateMonthLabel()
 ////        fetchAllShops {
 ////                self.startAllListeners()
@@ -109,30 +115,33 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        print("startAllListeners 呼ばれた")
-        // Step 1: ユーザーの groupId を取得
+        print("viewWillAppear 呼ばれた")
+
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        db.collection("users").document(uid).getDocument { snapshot, error in
+
+        // ユーザー情報取得
+        db.collection("users").document(uid).getDocument { [weak self] snapshot, error in
+            guard let self = self else { return }
+
             if let data = snapshot?.data(), let groupId = data["groupId"] as? String {
-                print("取得した groupId:", groupId) // ← これ出る？
+                print("取得した groupId:", groupId)
                 self.groupId = groupId
-                self.startAllListeners()
+
+                // 取得完了後にショップ情報ロード
+                self.fetchAllShops {
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()  // ショップ名を反映
+                        self.startAllListeners()     // Listener開始
+                    }
+                }
+
             } else {
                 print("groupId が取得できなかった")
+                // 必要に応じて fetchGroupIdIfNeeded をここで呼ぶ
             }
         }
-        fetchGroupIdIfNeeded { [weak self] success in
-                guard let self = self else { return }
-                if success {
-                    // groupId が取得できたらデータをロード
-                    self.fetchAllShops {
-                        self.startAllListeners()
-                    }
-                } else {
-                    print("⚠️ groupId が取得できなかった。ShopListVC に遷移するなどの処理も検討")
-                }
-            }
     }
+
     
     private func fetchGroupIdIfNeeded(completion: @escaping (Bool) -> Void) {
         if let groupId = self.groupId, !groupId.isEmpty {
@@ -326,14 +335,14 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
 //        }
 //    }
     
-    func fetchUserNames() {
-        FirestoreManager.shared.fetchUserNames { names in
-            self.userNames = names
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
-    }
+//    func fetchUserNames() {
+//        FirestoreManager.shared.fetchUserNames { names in
+//            self.userNames = names
+//            DispatchQueue.main.async {
+//                self.tableView.reloadData()
+//            }
+//        }
+//    }
 
     
     func groupItemsByMonth(items: [Item]) {
@@ -592,7 +601,46 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
 //        }
 //    }
 
-  
+    // 月切り替えで呼ぶ
+    func reloadTableForSelectedMonth() {
+        let monthKey = "\(selectedYear)-\(selectedMonth)"
+
+        // その月のデータだけ取り出す
+        let shopsForMonth = itemsByMonthAndShop[monthKey] ?? [:]
+
+        // sectionKeys をその月だけで作り直す
+        sectionKeys = shopsForMonth.map { (shopId, items) in
+            (month: monthKey, shopId: shopId, shopName: shopNamesById[shopId] ?? "不明")
+        }.sorted { $0.shopName < $1.shopName } // 名前順に並べたい場合
+
+        // テーブル表示用に items も取り出して保持
+        displayedItems = shopsForMonth  // もし UITableViewDataSource 内で使う場合
+
+        tableView.reloadData()
+    }
+    
+    func updateMonthlyItems(for month: Date) {
+        let allShops = ["ShopA", "ShopB", "ShopC"]
+        var monthlyItems: [String: [Item]] = [:]
+
+        for shop in allShops {
+            monthlyItems[shop] = items.filter { item in
+                // shopId から名前を取得
+                let name = shopNamesById[item.shopId] ?? "不明"
+                
+                // shop 名が一致して、かつ purchaseHistory に指定月の購入日があるか
+                return name == shop &&
+                       item.purchaseHistory.contains { date in
+                           Calendar.current.isDate(date, equalTo: month, toGranularity: .month)
+                       }
+            }
+        }
+
+        self.monthlyItems = monthlyItems
+        tableView.reloadData()
+    }
+
+
 
     func groupItemsByMonthAndShop(items: [Item], shopNamesById: [String: String]) {
         self.itemsByMonthAndShop.removeAll()
@@ -600,33 +648,35 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
         let calendar = Calendar.current
         
         for item in items {
-            // 月ごとのキーを作る
-            let comps = calendar.dateComponents([.year, .month], from: item.purchaseHistory.first ?? Date())
-            let monthKey = "\(comps.year!)-\(comps.month!)"
-            
             let shopIdTrimmed = item.shopId.trimmingCharacters(in: .whitespacesAndNewlines)
-            let shopName = shopNamesById[shopIdTrimmed] ?? "不明"
-
             
-            // itemsByMonthAndShop に追加
-            if self.itemsByMonthAndShop[monthKey] == nil {
-                self.itemsByMonthAndShop[monthKey] = [:]
+            // purchaseHistory の日付ごとに monthKey を作る
+            for date in item.purchaseHistory {
+                let comps = calendar.dateComponents([.year, .month], from: date)
+                let monthKey = "\(comps.year!)-\(comps.month!)"
+                
+                // itemsByMonthAndShop に追加
+                if self.itemsByMonthAndShop[monthKey] == nil {
+                    self.itemsByMonthAndShop[monthKey] = [:]
+                }
+                if self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed] == nil {
+                    self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed] = []
+                }
+                self.itemsByMonthAndShop[monthKey]?[shopIdTrimmed]?.append(item)
             }
-            if self.itemsByMonthAndShop[monthKey]?[item.shopId] == nil {
-                self.itemsByMonthAndShop[monthKey]?[item.shopId] = []
-            }
-            self.itemsByMonthAndShop[monthKey]?[item.shopId]?.append(item)
         }
         
         // sectionKeys を更新
-        self.sectionKeys = self.itemsByMonthAndShop.map { (month, shopDict) in
+        self.sectionKeys = self.itemsByMonthAndShop.flatMap { (month, shopDict) in
             shopDict.map { (shopId, items) in
                 (month: month, shopId: shopId, shopName: shopNamesById[shopId] ?? "不明")
             }
-        }.flatMap { $0 }
+        }
         
-        print("✅ sectionKeys 更新:", self.sectionKeys)
+        tableView.reloadData()
     }
+
+
 
     
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -635,17 +685,12 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
-        
-        let (monthKey, shopId, _) = sectionKeys[section]
-           // 辞書が存在しない場合のガードを強化
-           guard let shopItemsDict = itemsByMonthAndShop[monthKey],
-                 let monthItems = shopItemsDict[shopId] else {
-               return 1 // アイテムがない場合は合計額セルのみ表示
-           }
-           
-           let checkedItemsCount = monthItems.filter { $0.isChecked }.count
-           return 1 + checkedItemsCount
+        let sectionInfo = sectionKeys[section]
+        guard let shopItemsDict = itemsByMonthAndShop[sectionInfo.month],
+              let monthItems = shopItemsDict[sectionInfo.shopId] else {
+            return 1 // 合計セルのみ
+        }
+        return 1 + monthItems.count // 合計セル + 全アイテム
     }
 
 
@@ -653,52 +698,66 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         guard section < sectionKeys.count else { return nil }
         let key = sectionKeys[section]
-        return "\(key.month) - \(key.shopName)"
+        let sectionInfo = sectionKeys[section]
+            return "\(sectionInfo.month)-\(sectionInfo.shopName)"
     }
 
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let (monthKey, shopId, shopName) = sectionKeys[indexPath.section]
-           guard let shopItemsDict = itemsByMonthAndShop[monthKey],
-                 let monthItems = shopItemsDict[shopId] else {
-               return UITableViewCell()
-           }
-           
-           // TotalAmountShopCell (合計額)
-           if indexPath.row == 0 {
-               let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountShopCell", for: indexPath) as! TotalAmountShopCell
-               let total = monthItems.filter { $0.isChecked }.reduce(0) { $0 + Int($1.price) }
-               cell.totalPriceLabel.text = "¥\(total)"
-               
-               let shop = shops.first { $0.id == shopId }
-               cell.shopNameLabel.text = shop?.name ?? "不明なお店"
-               return cell
-               
-           // TotalAmountItemCell (アイテム詳細)
-           } else {
-               let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountItemCell", for: indexPath) as! TotalAmountItemCell
-               
-               // **✅ 修正後**: チェック済みのアイテムリストを作成し、そこから取得
-               let checkedItems = monthItems.filter { $0.isChecked }
-               let item = checkedItems[indexPath.row - 1] // これで安全にアクセスできます
-               
-               cell.item = item
-               cell.itemNameLabel.text = item.name
-               cell.priceTextField.text = String(Int(item.price))
+        print("cellForRowAt called, section: \(indexPath.section), row: \(indexPath.row)")
+
+        let sectionInfo = sectionKeys[indexPath.section]
+        guard let shopItemsDict = itemsByMonthAndShop[sectionInfo.month],
+              let monthItems = shopItemsDict[sectionInfo.shopId] else {
+            return UITableViewCell()
+        }
+
+        if indexPath.row == 0 {
+            // 合計セル
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountShopCell", for: indexPath) as! TotalAmountShopCell
+            let total = monthItems.filter { $0.isChecked }.reduce(0) { $0 + Int($1.price) }
+            cell.totalPriceLabel.text = "¥\(total)"
+            let shop = shops.first { $0.id == sectionInfo.shopId }
+            cell.shopNameLabel.text = shop?.name ?? "不明なお店"
+            return cell
+        } else {
+            // アイテムセル
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TotalAmountItemCell", for: indexPath) as! TotalAmountItemCell
+            let item = monthItems[indexPath.row - 1] // ✅ 全アイテムを使用
+            cell.item = item
+            cell.priceTextField.text = String(Int(item.price))
             cell.section = indexPath.section
             cell.row = indexPath.row - 1
             cell.delegate = self
 
-            let buyers = item.buyerIds.compactMap { self.userNames[$0] }
-            cell.buyerLabel.text = buyers.joined(separator: ", ")
+            if !item.buyerIds.isEmpty {
+                let names = item.buyerIds.map { uidToDisplayName[$0] ?? "不明" }
+                print("Item:", item.name, "buyerIds:", item.buyerIds, "names:", names)
+                cell.buyerLabel.text = names.joined(separator: ", ")
 
-            cell.configure(with: item)
-            
+            } else {
+                cell.buyerLabel.text = "不明"
+                print("Item:", item.name, "buyerIds:", item.buyerIds)
+            }
+
+
+
+            cell.configure(with: item, uidToDisplayName: uidToDisplayName)
             return cell
         }
     }
 
     
+    func fetchUserNames() {
+        FirestoreManager.shared.fetchUserNames { namesDict in
+            // namesDict の型は [String: String] なので、uid と displayName が直接取れる
+            self.uidToDisplayName = namesDict
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+    }
+
 
     
 
@@ -768,12 +827,22 @@ class TotalAmountViewController: UIViewController, UITableViewDataSource, UITabl
     }
 
     func changeMonth(by value: Int) {
-        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: currentDate) {
+        let calendar = Calendar.current
+        // currentDate を value か月進める
+        if let newDate = calendar.date(byAdding: .month, value: value, to: currentDate) {
             currentDate = newDate
             updateMonthLabel()
-//            fetchItemsAndReload()
+            
+            // selectedYear / selectedMonth を更新
+            selectedYear = calendar.component(.year, from: newDate)
+            selectedMonth = calendar.component(.month, from: newDate)
+            
+            // 月が変わったら items を再グループ化
+            groupItemsByMonthAndShop(items: allItems, shopNamesById: shopNamesById)
+            tableView.reloadData()
         }
     }
+
 
     func updateMonthLabel() {
         let formatter = DateFormatter()

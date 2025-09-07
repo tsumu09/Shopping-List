@@ -439,71 +439,69 @@ final class FirestoreManager {
     
     // MARK: 招待コードから groupId を探して参加・ユーザードキュメントも更新する
     func joinGroup(withInviteCode code: String,
-                   completion: @escaping (Result<String, Error>) -> Void) {
-        
-        let ref = db.collection("invites").document(code)
-        ref.getDocument { snap, error in
-            if let e = error { return completion(.failure(e)) }
-            guard let data = snap?.data(),
-                  let groupId = data["groupId"] as? String,
-                  let expiresAt = data["expiresAt"] as? Timestamp else {
-                return completion(.failure(
-                    NSError(domain:"", code:0,
-                            userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
-                ))
-            }
-            
-            // 期限チェック
-            if expiresAt.dateValue() < Date() {
-                return completion(.failure(
-                    NSError(domain:"", code:0,
-                            userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
-                ))
-            }
-            
-            guard let email = Auth.auth().currentUser?.email else {
-                return completion(.failure(
-                    NSError(domain:"", code:0,
-                            userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
-                ))
-            }
-            
-            let safeEmail = email.replacingOccurrences(of: ".", with: "-")
-                .replacingOccurrences(of: "@", with: "-")
-            
-            let userDocRef = self.db.collection("users").document(safeEmail)
-            userDocRef.getDocument { snapshot, error in
-                guard let userData = snapshot?.data(),
-                      let firstName = userData["first_name"] as? String else {
-                    return completion(.failure(
-                        NSError(domain:"", code:0,
-                                userInfo:[NSLocalizedDescriptionKey:"ユーザー情報取得失敗"])
-                    ))
-                }
-                
-                // 🔹 pendingMembers に追加する
-                let pendingRef = self.db.collection("groups")
-                    .document(groupId)
-                    .collection("pendingMembers")
-                    .document(safeEmail)
-                
-                pendingRef.setData([
-                    "joinedAt": Timestamp(),
-                    "displayName": firstName,
-                    "userDocId": safeEmail
-                ]) { error in
-                    if let error = error {
-                        completion(.failure(error))
-                    } else {
-                        // 🔹 users ドキュメントに groupId を merge
-                        userDocRef.setData(["groupId": groupId], merge: true) { _ in
-                            completion(.success(groupId))
-                        }
-                    }
-                }
-            }
-        }
-    }
+                    completion: @escaping (Result<String, Error>) -> Void) {
+         
+         let ref = db.collection("invites").document(code)
+         ref.getDocument { snap, error in
+             if let e = error { return completion(.failure(e)) }
+             guard let data = snap?.data(),
+                   let groupId = data["groupId"] as? String,
+                   let expiresAt = data["expiresAt"] as? Timestamp else {
+                 return completion(.failure(
+                     NSError(domain:"", code:0,
+                             userInfo:[NSLocalizedDescriptionKey:"無効な招待コードです"])
+                 ))
+             }
+             
+             // 期限チェック
+             if expiresAt.dateValue() < Date() {
+                 return completion(.failure(
+                     NSError(domain:"", code:0,
+                             userInfo:[NSLocalizedDescriptionKey:"このコードは期限切れです"])
+                 ))
+             }
+             
+             guard let uid = Auth.auth().currentUser?.uid else {
+                 return completion(.failure(
+                     NSError(domain:"", code:0,
+                             userInfo:[NSLocalizedDescriptionKey:"ユーザー情報がありません"])
+                 ))
+             }
+             
+             let userDocRef = self.db.collection("users").document(uid)
+             userDocRef.getDocument { snapshot, error in
+                 guard let userData = snapshot?.data(),
+                       let displayName = userData["displayName"] as? String else {
+                     return completion(.failure(
+                         NSError(domain:"", code:0,
+                                 userInfo:[NSLocalizedDescriptionKey:"ユーザー情報取得失敗"])
+                     ))
+                 }
+                 
+                 // pendingMembers に追加
+                 let pendingRef = self.db.collection("groups")
+                     .document(groupId)
+                     .collection("pendingMembers")
+                     .document(uid)
+                 
+                 pendingRef.setData([
+                     "joinedAt": Timestamp(),
+                     "displayName": displayName,
+                     "userDocId": uid
+                 ]) { error in
+                     if let error = error {
+                         completion(.failure(error))
+                     } else {
+                         // users ドキュメントに groupId を merge
+                         userDocRef.setData(["groupId": groupId], merge: true) { _ in
+                             completion(.success(groupId))
+                         }
+                     }
+                 }
+             }
+         }
+     }
+
     
     
     
@@ -611,16 +609,29 @@ extension FirestoreManager {
             if let docs = snapshot?.documents {
                 for doc in docs {
                     let data = doc.data()
+                    let uid = doc.documentID
                     let firstName = data["first_name"] as? String ?? ""
                     let lastName = data["last_name"] as? String ?? ""
-                    let displayName = firstName + " " + lastName
+                    let displayName = lastName + " " + firstName
                     names[doc.documentID] = displayName // ← uid がキーになる
                 }
             }
-            
             completion(names)
         }
     }
+    
+    func fetchUserDisplayNames(completion: @escaping ([String: String]) -> Void) {
+        db.collection("users").getDocuments { snapshot, error in
+            var names: [String: String] = [:]
+            snapshot?.documents.forEach { doc in
+                let uid = doc.documentID
+                let displayName = doc.data()["displayName"] as? String ?? ""
+                names[uid] = displayName
+            }
+            completion(names)
+        }
+    }
+
 
    
         /// pendingMembers の承認処理

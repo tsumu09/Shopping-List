@@ -45,7 +45,17 @@ class MapViewController: UIViewController, MKMapViewDelegate, CLLocationManagerD
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        
+        if !hasSetIntialRegion {
+                let regionRadius: CLLocationDistance = 200 // 半径500m
+                let coordinateRegion = MKCoordinateRegion(
+                    center: location.coordinate,
+                    latitudinalMeters: regionRadius * 2,
+                    longitudinalMeters: regionRadius * 2
+                )
+                mapView.setRegion(coordinateRegion, animated: true)
+                hasSetIntialRegion = true
+            }
+
         for shop in shops {
             let shopLocation = CLLocation(latitude: shop.latitude, longitude: shop.longitude)
             let distance = location.distance(from: shopLocation)

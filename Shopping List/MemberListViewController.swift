@@ -65,11 +65,9 @@ class MemberListViewController: UIViewController, UITableViewDataSource, UITable
 
     // MARK: - 自分のユーザーデータ取得
     func loadMyUserData() {
-        guard let email = Auth.auth().currentUser?.email else { return }
-        let safeEmail = makeSafeEmail(from: email)
-        print("safeEmail:", safeEmail)
+        guard let uid = Auth.auth().currentUser?.uid else { return }
 
-        db.collection("users").document(safeEmail).getDocument { [weak self] snapshot, error in
+        db.collection("users").document(uid).getDocument { [weak self] snapshot, error in
             guard let self = self else { return }
             if let error = error {
                 print("ユーザーデータ取得失敗: \(error.localizedDescription)")
@@ -81,11 +79,20 @@ class MemberListViewController: UIViewController, UITableViewDataSource, UITable
             }
 
             DispatchQueue.main.async {
-                self.myNameLabel.text = data["first_name"] as? String ?? ""
+                if let displayName = data["displayName"] as? String {
+                    let parts = displayName.split(separator: " ")
+                    if parts.count >= 2 {
+                        let firstName = parts[0]
+                        let lastName = parts[1]
+                        self.myNameLabel.text = "\(lastName) \(firstName)"
+                    } else {
+                        self.myNameLabel.text = displayName
+                    }
+                }
+
                 self.groupId = data["groupId"] as? String
                 self.isAdmin = data["isAdmin"] as? Bool ?? false
 
-                // groupId取得後にメンバー監視・pending監視を開始
                 self.observeMembers()
                 if self.isAdmin {
                     self.observePendingMembers()
@@ -100,18 +107,38 @@ class MemberListViewController: UIViewController, UITableViewDataSource, UITable
         db.collection("groups").document(groupId)
           .collection("members")
           .addSnapshotListener { [weak self] snapshot, error in
-              guard let self = self, let docs = snapshot?.documents else { return }
+              guard let self = self, let docs = snapshot?.documents else {
+                  print("❌ snapshot or docs nil")
+                  return
+              }
+
               self.members = docs.compactMap { doc -> AppUser? in
                   let data = doc.data()
-                  guard let firstName = data["displayName"] as? String else { return nil }
-                  
-                  // 既存の AppUser イニシャライザに合わせる
-                  return AppUser(uid: doc.documentID, firstName: firstName, lastName: "", email: nil)
+                  guard let displayName = data["displayName"] as? String else {
+                      print("❌ displayName not found in \(doc.documentID)")
+                      return nil
+                  }
+
+                  // 🔹 デバッグログ
+                  print("Firestore displayName:", displayName)
+
+                  let parts = displayName.split(separator: " ")
+                  var reorderedName = displayName
+                  if parts.count >= 2 {
+                      let firstName = parts[0]   // 名
+                      let lastName = parts[1]    // 姓
+                      reorderedName = "\(lastName) \(firstName)"  // 姓 名
+                  }
+
+                  print("変換後:", reorderedName)
+
+                  return AppUser(uid: doc.documentID, displayName: reorderedName, email: nil)
               }
 
               self.tableView.reloadData()
           }
     }
+
 
     // MARK: - pendingMembers 監視（作成者用）
     func observePendingMembers() {
@@ -212,6 +239,7 @@ class MemberListViewController: UIViewController, UITableViewDataSource, UITable
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MemberCell", for: indexPath) as! MemberCell
         let member = members[indexPath.row]
+        print("Cell にセットする displayName:", member.displayName)
         cell.configure(with: member)
         return cell
     }
